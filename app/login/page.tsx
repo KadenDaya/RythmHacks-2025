@@ -72,7 +72,6 @@ export default function Login() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-orange-900 to-red-900 relative overflow-hidden">
-      {/* Animated Sunset Grid Background */}
       <div className="absolute inset-0 opacity-10">
         <div className="grid grid-cols-20 grid-rows-20 h-full w-full animate-pulse">
           {Array.from({ length: 400 }).map((_, i) => (
@@ -81,7 +80,6 @@ export default function Login() {
         </div>
       </div>
       
-      {/* Floating Sunset Particles */}
       <div className="absolute inset-0 overflow-hidden">
         {Array.from({ length: 15 }).map((_, i) => (
           <div
