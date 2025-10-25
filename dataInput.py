@@ -4,17 +4,18 @@ class date:
     month = 0
     day = 0
 
+#need to be integers
     def __init__ (self, year, month, day):
         self.year = year
         self.month = month
         self.day = day
 
-    def getyear(self):
-        return self.year
-    def getmonth(self):
-        return self.month
-    def getday(self):
-        return self.day
+#     def getyear(self):
+#         return self.year
+#     def getmonth(self):
+#         return self.month
+#     def getday(self):
+#         return self.day
 
 
 class transactionData:
@@ -23,6 +24,7 @@ class transactionData:
         self.paymentDate = date(paymentYear, paymentMonth, paymentDay)
         self.cost = cost
         pass
+
     
 
 
@@ -41,9 +43,32 @@ class cardData:
         pass
     def percentageOfCardUsedAVG(self, transactionList, cardLimit):
         #find percentage of card being used, calculate in terms of monthly usage based on 10 most recent months
-        for i in range(11):
-            tenMonthList = []
-            if transactionList[i].getmonth() == some_
-                # Add your logic here
-                pass
-        return 0 
+        temp = 0
+        #organize list oldest to newest
+        for i in range(len(transactionList)-1):
+            #bubble sort
+            if transactionList[i].year>transactionList[i+1].year:
+                temp = transactionList[i]
+                transactionList[i]=transactionList[i+1]
+                transactionList[i+1]=temp
+        
+            elif transactionList[i].month>transactionList[i+1].month:
+                temp = transactionList[i]
+                transactionList[i]=transactionList[i+1]
+                transactionList[i+1]=temp
+
+            elif transactionList[i].day>transactionList[i+1].day:
+                temp = transactionList[i]
+                transactionList[i]=transactionList[i+1]
+                transactionList[i+1]=temp
+        tenMonthList = []
+        count = 0
+        originalMonth = 0
+        for i in range(len(transactionList),0,-1):
+            originalMonth = transactionList[i+1].month
+            if count< 10 :
+                break
+            elif originalMonth != transactionList[i].month:
+                count+=1
+            tenMonthList.append(transactionList[i])
+
