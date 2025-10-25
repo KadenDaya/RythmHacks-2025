@@ -66,7 +66,7 @@ export default function Login() {
       }
     } catch (error) {
       console.log("Error caught:", error);
-      setMessage(`Connection error: ${error.message}`);
+      setMessage(`Connection error');
     }
   };
 
