@@ -45,33 +45,39 @@ class cardData:
         #find percentage of card being used, calculate in terms of monthly usage based on 10 most recent months
         temp = 0
         #organize list oldest to newest
-        for i in range(len(transactionList)-1):
+        changed = False
+        while changed == True:
+            changed = False
+            for i in range(len(transactionList)-1):
             #bubble sort
-            while changed == True:
-
-                 transactionList[i].purchaseDate.year>transactionList[i+1].purchaseDate.year:
+            
+                
+                if transactionList[i].purchaseDate.year>transactionList[i+1].purchaseDate.year:
                     temp = transactionList[i]
                     transactionList[i]=transactionList[i+1]
                     transactionList[i+1]=temp
-
+                    changed=True
+                elif transactionList[i].purchaseDate.year==transactionList[i+1].purchaseDate.year:
+                    if transactionList[i].purchaseDate.month>transactionList[i+1].purchaseDate.month:
+                        temp = transactionList[i]
+                        transactionList[i]=transactionList[i+1]
+                        transactionList[i+1]=temp
+                        changed=True
+                    elif transactionList[i].purchaseDate.month>transactionList[i+1].purchaseDate.month:
+                        if transactionList[i].purchaseDate.day>transactionList[i+1].purchaseDate.day:
+                            temp = transactionList[i]
+                            transactionList[i]=transactionList[i+1]
+                            transactionList[i+1]=temp
+                            changed=True
         
-                if transactionList[i].purchaseDate.month>transactionList[i+1].purchaseDate.month:
-                    temp = transactionList[i]
-                    transactionList[i]=transactionList[i+1]
-                    transactionList[i+1]=temp
-
-                if transactionList[i].purchaseDate.day>transactionList[i+1].purchaseDate.day:
-                    temp = transactionList[i]
-                    transactionList[i]=transactionList[i+1]
-                    transactionList[i+1]=temp
         tenMonthList = []
         count = 0
         originalMonth = 0
-        for i in range(len(transactionList),0,-1):
-            originalMonth = transactionList[i+1].month
-            if count< 10 :
+        for i in range(1,len(transactionList)):
+            originalMonth = transactionList[len(transactionList)-i].month
+            if count >= 10 :
                 break
-            elif originalMonth != transactionList[i].month:
+            elif originalMonth != transactionList[len(transactionList)-i].month:
                 count+=1
-            tenMonthList.append(transactionList[i])
+            tenMonthList.append(transactionList[len(transactionList)-1])
 
