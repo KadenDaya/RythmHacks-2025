@@ -47,20 +47,23 @@ class cardData:
         #organize list oldest to newest
         for i in range(len(transactionList)-1):
             #bubble sort
-            if transactionList[i].year>transactionList[i+1].year:
-                temp = transactionList[i]
-                transactionList[i]=transactionList[i+1]
-                transactionList[i+1]=temp
-        
-            elif transactionList[i].month>transactionList[i+1].month:
-                temp = transactionList[i]
-                transactionList[i]=transactionList[i+1]
-                transactionList[i+1]=temp
+            while changed == True:
 
-            elif transactionList[i].day>transactionList[i+1].day:
-                temp = transactionList[i]
-                transactionList[i]=transactionList[i+1]
-                transactionList[i+1]=temp
+                 transactionList[i].purchaseDate.year>transactionList[i+1].purchaseDate.year:
+                    temp = transactionList[i]
+                    transactionList[i]=transactionList[i+1]
+                    transactionList[i+1]=temp
+
+        
+                if transactionList[i].purchaseDate.month>transactionList[i+1].purchaseDate.month:
+                    temp = transactionList[i]
+                    transactionList[i]=transactionList[i+1]
+                    transactionList[i+1]=temp
+
+                if transactionList[i].purchaseDate.day>transactionList[i+1].purchaseDate.day:
+                    temp = transactionList[i]
+                    transactionList[i]=transactionList[i+1]
+                    transactionList[i+1]=temp
         tenMonthList = []
         count = 0
         originalMonth = 0
