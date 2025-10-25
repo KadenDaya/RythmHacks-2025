@@ -1,0 +1,13 @@
+/backend
+.env
+.env.local
+.env.production.local
+.env.development.local
+README.md
+dataInput.py
+requirements.txt
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
