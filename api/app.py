@@ -1,4 +1,5 @@
-from fastapi import FastAPI, Depends, HTTPException, status
+from fastapi import FastAPI, Depends, HTTPException, status, Form, File, UploadFile
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 import database, models, auth
@@ -6,6 +7,14 @@ import uvicorn
 
 models.Base.metadata.create_all(bind=database.engine)
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
 
@@ -36,6 +45,64 @@ def login(form: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
     token = auth.create_access_token({"sub": user.username})
     return {"access_token": token, "token_type": "bearer"}
+
+@app.post("/submit-financial-info")
+def submit_financial_info(
+    token: str = Depends(oauth2_scheme),
+    creditCardLimit: str = Form(...),
+    cardAge: str = Form(...),
+    creditCardStatement: UploadFile = File(None),
+    creditForms: str = Form(...),
+    currentDebt: str = Form(...),
+    debtAmount: str = Form(...),
+    debtEndDate: str = Form(...),
+    debtDuration: str = Form(...),
+    db: Session = Depends(get_db)
+):
+    username = auth.decode_token(token)
+    if not username:
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
+    
+    user = db.query(models.User).filter(models.User.username == username).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    pdf_data = None
+    if creditCardStatement and creditCardStatement.filename:
+        pdf_data = creditCardStatement.file.read()
+    
+    existing_data = db.query(models.FinancialData).filter(models.FinancialData.user_id == user.id).first()
+    
+    if existing_data:
+        existing_data.credit_card_limit = creditCardLimit
+        existing_data.card_age = cardAge
+        if pdf_data:
+            existing_data.credit_card_statement = pdf_data
+        existing_data.credit_forms = creditForms
+        existing_data.current_debt = currentDebt
+        existing_data.debt_amount = debtAmount
+        existing_data.debt_end_date = debtEndDate
+        existing_data.debt_duration = debtDuration
+        db.commit()
+        db.refresh(existing_data)
+        financial_data = existing_data
+    else:
+        financial_data = models.FinancialData(
+            user_id=user.id,
+            credit_card_limit=creditCardLimit,
+            card_age=cardAge,
+            credit_card_statement=pdf_data,
+            credit_forms=creditForms,
+            current_debt=currentDebt,
+            debt_amount=debtAmount,
+            debt_end_date=debtEndDate,
+            debt_duration=debtDuration
+        )
+        db.add(financial_data)
+        db.commit()
+        db.refresh(financial_data)
+    
+    return {"msg": "✓ Financial information saved successfully!", "data_id": financial_data.id}
 
 @app.get("/protected")
 def protected_route(token: str = Depends(oauth2_scheme)):
