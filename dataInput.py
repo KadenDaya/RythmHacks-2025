@@ -41,17 +41,14 @@ class cardData:
         self.transactionList = transactionList
         self.ageOfCard = ageOfCard
         pass
-    def percentageOfCardUsedAVG(self, transactionList, cardLimit):
-        #find percentage of card being used, calculate in terms of monthly usage based on 10 most recent months
+    def organizeDataSet(self, transactionList):
+        #organize list oldest transactions to newest
         temp = 0
-        #organize list oldest to newest
         changed = True
         while changed == True:
             changed = False
             for i in range(len(transactionList)-1):
-            #bubble sort
-            
-                
+            #bubble sort to sort the data, finding spikes
                 if transactionList[i].purchaseDate.year>transactionList[i+1].purchaseDate.year:
                     temp = transactionList[i]
                     transactionList[i]=transactionList[i+1]
@@ -69,15 +66,16 @@ class cardData:
                             transactionList[i]=transactionList[i+1]
                             transactionList[i+1]=temp
                             changed=True
+    def percentageOfCardUsedAVG(self, transactionList, cardLimit):
+        #find percentage of card being used, calculate in terms of monthly usage based on 10 most recent months
+        unpaidDebts = 0
+        for i in range(len(transactionList)):
+            if transactionList[i].paymentDate.year <0:
+                unpaidDebts += transactionList[i].cost
+            if cardLimit > 0 :
+                percentageUsed = unpaidDebts/cardLimit
+            
         
-        tenMonthList = []
-        count = 0
-        originalMonth = 0
-        for i in range(1,len(transactionList)):
-            originalMonth = transactionList[len(transactionList)-i].month
-            if count >= 10 :
-                break
-            elif originalMonth != transactionList[len(transactionList)-i].month:
-                count+=1
-            tenMonthList.append(transactionList[len(transactionList)-1])
+        
+        
 
