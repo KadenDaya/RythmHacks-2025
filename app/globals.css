@@ -3,13 +3,16 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  --primary: #6366f1;
+  --primary-dark: #4f46e5;
+  --gradient-start: #667eea;
+  --gradient-end: #764ba2;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-inter), system-ui, -apple-system, sans-serif;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -22,5 +25,135 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-inter), system-ui, -apple-system, sans-serif;
+}
+
+.gradient-bg {
+  background: linear-gradient(135deg, var(--gradient-start) 0%, var(--gradient-end) 100%);
+}
+
+.card-shadow {
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+/* Custom Animations */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fade-in-delayed {
+  0% {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  50% {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(50px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes bounce-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.3) translateY(50px);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.05) translateY(-10px);
+  }
+  70% {
+    transform: scale(0.9) translateY(0);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes gradient-x {
+  0%, 100% {
+    background-size: 200% 200%;
+    background-position: left center;
+  }
+  50% {
+    background-size: 200% 200%;
+    background-position: right center;
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.8s ease-out;
+}
+
+.animate-fade-in-delayed {
+  animation: fade-in-delayed 1.2s ease-out;
+}
+
+.animate-slide-up {
+  animation: slide-up 1s ease-out;
+}
+
+.animate-bounce-in {
+  animation: bounce-in 1.2s ease-out;
+}
+
+.animate-gradient-x {
+  animation: gradient-x 3s ease-in-out infinite;
+}
+
+@keyframes border-flow {
+  0% {
+    border-color: transparent;
+    background-position: 0% 50%;
+  }
+  25% {
+    border-color: rgba(251, 146, 60, 0.5);
+    background-position: 25% 50%;
+  }
+  50% {
+    border-color: rgba(239, 68, 68, 0.5);
+    background-position: 50% 50%;
+  }
+  75% {
+    border-color: rgba(236, 72, 153, 0.5);
+    background-position: 75% 50%;
+  }
+  100% {
+    border-color: transparent;
+    background-position: 100% 50%;
+  }
+}
+
+.animate-border-flow {
+  animation: border-flow 2s ease-in-out infinite;
+  background: linear-gradient(90deg, 
+    rgba(251, 146, 60, 0.3) 0%, 
+    rgba(239, 68, 68, 0.3) 25%, 
+    rgba(236, 72, 153, 0.3) 50%, 
+    rgba(239, 68, 68, 0.3) 75%, 
+    rgba(251, 146, 60, 0.3) 100%
+  );
+  background-size: 200% 100%;
 }
