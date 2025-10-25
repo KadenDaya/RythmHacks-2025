@@ -1,0 +1,52 @@
+# Next.js frontend (handled by Vercel)
+/app
+/public
+package.json
+package-lock.json
+next.config.ts
+tsconfig.json
+eslint.config.mjs
+postcss.config.mjs
+
+# Environment files
+.env
+.env.local
+.env.production.local
+.env.development.local
+
+# Documentation
+README.md
+*.md
+
+# Git
+.git/
+.gitignore
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/
+*.log
+
+# Temporary files
+tmp/
+temp/
+
+# Vercel specific
+.vercelignore
