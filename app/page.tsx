@@ -5,7 +5,6 @@ import Link from "next/link";
 export default function Home() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-orange-900 to-red-900 flex flex-col relative overflow-hidden">
-      {/* Animated Sunset Grid Background */}
       <div className="absolute inset-0 opacity-10">
         <div className="grid grid-cols-20 grid-rows-20 h-full w-full animate-pulse">
           {Array.from({ length: 400 }).map((_, i) => (
@@ -14,7 +13,6 @@ export default function Home() {
         </div>
       </div>
       
-      {/* Floating Sunset Particles */}
       <div className="absolute inset-0 overflow-hidden">
         {Array.from({ length: 20 }).map((_, i) => (
           <div
@@ -30,7 +28,6 @@ export default function Home() {
         ))}
       </div>
       
-      {/* Simple Navbar */}
       <nav className="w-full px-8 py-6 flex justify-between items-center relative z-10 animate-fade-in">
         <h1 className="text-3xl font-bold bg-gradient-to-r from-orange-400 via-red-400 to-pink-400 bg-clip-text text-transparent">
           Incrediscore
@@ -45,7 +42,6 @@ export default function Home() {
         </Link>
       </nav>
 
-      {/* Main Hero Section */}
       <div className="flex-1 flex items-center justify-center px-8 relative z-10">
         <div className="max-w-4xl text-center">
           <h1 className="text-6xl md:text-7xl font-bold mb-6 leading-tight animate-slide-up">
