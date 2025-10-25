@@ -19,10 +19,12 @@ class cardData:
     count = 0
     cardLimit = 0.0
     transactionList = []
+    ageOfCard = 0
     
-    def __init__(self, count, cardLimit, transactionList):
+    def __init__(self, count, cardLimit, transactionList, ageOfCard):
         #Call the app to submit the current data to the server, then set that as one of the values [t, a, a,a]
         self.count = count
         self.cardLimit = cardLimit
         self.transactionList = transactionList
+        self.age = ageOfCard
         pass
