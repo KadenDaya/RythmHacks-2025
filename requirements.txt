@@ -8,3 +8,4 @@ pydantic
 python-dotenv
 python-multipart
 bcrypt
+requests
