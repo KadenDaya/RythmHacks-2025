@@ -39,13 +39,13 @@ class cardData:
         self.count = count
         self.cardLimit = cardLimit
         self.transactionList = transactionList
-        self.age = ageOfCard
+        self.ageOfCard = ageOfCard
         pass
     def percentageOfCardUsedAVG(self, transactionList, cardLimit):
         #find percentage of card being used, calculate in terms of monthly usage based on 10 most recent months
         temp = 0
         #organize list oldest to newest
-        changed = False
+        changed = True
         while changed == True:
             changed = False
             for i in range(len(transactionList)-1):
@@ -63,7 +63,7 @@ class cardData:
                         transactionList[i]=transactionList[i+1]
                         transactionList[i+1]=temp
                         changed=True
-                    elif transactionList[i].purchaseDate.month>transactionList[i+1].purchaseDate.month:
+                    elif transactionList[i].purchaseDate.month==transactionList[i+1].purchaseDate.month:
                         if transactionList[i].purchaseDate.day>transactionList[i+1].purchaseDate.day:
                             temp = transactionList[i]
                             transactionList[i]=transactionList[i+1]
