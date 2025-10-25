@@ -8,7 +8,7 @@ export default function Form() {
   const [formData, setFormData] = useState({
     creditCardLimit: "",
     cardAge: "",
-    creditCardStatement: "",
+    creditCardStatement: null as File | null,
     creditForms: "",
     currentDebt: "",
     debtAmount: "",
@@ -22,6 +22,13 @@ export default function Form() {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, files } = e.target;
+    if (files && files[0]) {
+      setFormData(prev => ({ ...prev, [name]: files[0] }));
+    }
   };
 
 
@@ -44,9 +51,18 @@ export default function Form() {
     submitData.append("debtEndDate", formData.debtEndDate);
     submitData.append("debtDuration", formData.debtDuration);
     
+    if (formData.creditCardStatement) {
+      submitData.append("creditCardStatement", formData.creditCardStatement);
+    }
 
     try {
       const token = localStorage.getItem("token");
+      if (!token) {
+        setMessage("Please log in first");
+        router.push("/login");
+        return;
+      }
+
       const response = await fetch("http://localhost:8000/submit-financial-info", {
         method: "POST",
         headers: {
@@ -56,10 +72,11 @@ export default function Form() {
       });
 
       if (response.ok) {
-        setMessage("✓ Information submitted successfully!");
-        // TODO: Redirect to results page
+        const result = await response.json();
+        setMessage(result.msg || "✓ Information submitted successfully!");
       } else {
-        setMessage("Error submitting information");
+        const error = await response.json();
+        setMessage(error.detail || "Error submitting information");
       }
     } catch (error) {
       setMessage("Connection error");
@@ -71,7 +88,6 @@ export default function Form() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-orange-900 to-red-900 relative overflow-hidden">
-      {/* Animated Sunset Grid Background */}
       <div className="absolute inset-0 opacity-10">
         <div className="grid grid-cols-20 grid-rows-20 h-full w-full animate-pulse">
           {Array.from({ length: 400 }).map((_, i) => (
@@ -80,7 +96,6 @@ export default function Form() {
         </div>
       </div>
       
-      {/* Floating Sunset Particles */}
       <div className="absolute inset-0 overflow-hidden">
         {Array.from({ length: 10 }).map((_, i) => (
           <div
@@ -96,7 +111,6 @@ export default function Form() {
         ))}
       </div>
       
-      {/* Navbar */}
       <nav className="bg-slate-800/90 border-b border-orange-500/20 shadow-sm backdrop-blur-sm relative z-10 animate-fade-in">
         <div className="max-w-6xl mx-auto px-8 py-4 flex justify-between items-center">
           <h1 className="text-2xl font-bold bg-gradient-to-r from-orange-400 via-red-400 to-pink-400 bg-clip-text text-transparent">
@@ -111,7 +125,6 @@ export default function Form() {
         </div>
       </nav>
 
-      {/* Main Content */}
       <div className="max-w-4xl mx-auto px-8 py-12 relative z-10">
         <div className="mb-8 animate-slide-up">
           <h1 className="text-4xl font-bold bg-gradient-to-r from-orange-300 via-red-300 to-pink-300 bg-clip-text text-transparent mb-2 animate-gradient-x">Financial Information Form</h1>
@@ -119,7 +132,6 @@ export default function Form() {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-8">
-          {/* Credit Card Info */}
           <div className="bg-slate-800/90 rounded-xl p-6 shadow-sm border border-orange-500/20 backdrop-blur-sm">
             <h2 className="text-xl font-semibold text-orange-300 mb-4">Credit Card Information</h2>
             
@@ -155,20 +167,18 @@ export default function Form() {
 
             <div className="mt-6">
               <label className="block text-sm font-medium text-orange-200 mb-2">
-                Credit Card Statement Details
+                Credit Card Statement (PDF)
               </label>
-              <textarea
+              <input
+                type="file"
                 name="creditCardStatement"
-                value={formData.creditCardStatement}
-                onChange={handleInputChange}
-                className="bg-slate-700/50 border border-orange-500/30 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 text-white placeholder-orange-300/70 transition-all duration-300"
-                placeholder="Describe your credit card statement details, balances, payments, etc."
-                rows={3}
+                accept=".pdf"
+                onChange={handleFileChange}
+                className="bg-slate-700/50 border border-orange-500/30 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 text-white file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-orange-500/20 file:text-orange-300 hover:file:bg-orange-500/30 transition-all duration-300"
               />
             </div>
           </div>
 
-          {/* Forms of Credit */}
           <div className="bg-slate-800/90 rounded-xl p-6 shadow-sm border border-orange-500/20 backdrop-blur-sm">
             <h2 className="text-xl font-semibold text-orange-300 mb-4">Other Forms of Credit</h2>
             <p className="text-sm text-orange-200 mb-4">List all forms of credit you have (e.g., "Credit Cards, Personal Loan, Mortgage")</p>
@@ -184,7 +194,6 @@ export default function Form() {
             </div>
           </div>
 
-          {/* Debt Information */}
           <div className="bg-slate-800/90 rounded-xl p-6 shadow-sm border border-orange-500/20 backdrop-blur-sm">
             <h2 className="text-xl font-semibold text-orange-300 mb-4">Current Debt & Loans</h2>
             
@@ -249,7 +258,6 @@ export default function Form() {
             </div>
           </div>
 
-          {/* Submit Button */}
           <div className="flex justify-end">
             <button
               type="submit"
