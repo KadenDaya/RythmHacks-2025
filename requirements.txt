@@ -9,3 +9,4 @@ python-dotenv
 python-multipart
 bcrypt
 requests
+PyPDF2
