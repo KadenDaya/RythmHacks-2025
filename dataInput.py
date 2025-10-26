@@ -29,18 +29,15 @@ class transactionData:
 
 
 class cardData:
-    count = 0
-    cardLimit = 0.0
-    transactionList = []
-    ageOfCard = 0
-    
-    def __init__(self, count, cardLimit, transactionList, ageOfCard):
+    percentageUsed = 0.0
+    def __init__(self, cardLimit, transactionList, ageOfCard):
         #Call the app to submit the current data to the server, then set that as one of the values [t, a, a,a]
-        self.count = count
         self.cardLimit = cardLimit
         self.transactionList = transactionList
         self.ageOfCard = ageOfCard
         pass
+    def getAge(self):
+        return self.ageOfCard
     def organizeDataSet(self, transactionList):
         #organize list oldest transactions to newest
         temp = 0
@@ -68,12 +65,15 @@ class cardData:
                             changed=True
     def percentageOfCardUsedAVG(self, transactionList, cardLimit):
         #find percentage of card being used, calculate in terms of monthly usage based on 10 most recent months
-        unpaidDebts = 0
+        unpaidDebts = 0.0
         for i in range(len(transactionList)):
             if transactionList[i].paymentDate.year <0:
                 unpaidDebts += transactionList[i].cost
             if cardLimit > 0 :
                 percentageUsed = unpaidDebts/cardLimit
+                self.percentageUsed = percentageUsed
+    def getPercentageUsed(self):
+        return self.percentageUsed
             
         
         
