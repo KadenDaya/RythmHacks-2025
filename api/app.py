@@ -296,7 +296,7 @@ def generate_financial_insights(cleaned_data, financial_data):
         
         # Apply advanced algorithms
         monthly_budget = card_limit_float * 0.3
-        optimal_schedule = optimal_payment_schedule(unpaid_transactions, int(monthly_budget))
+        optimal_schedule = optimal_payment_schedule(unpaid_transactions, int(monthly_budget)) if unpaid_transactions else []
         
         spending_graph = build_spending_graph(transaction_objects)
         spending_clusters = find_spending_clusters(spending_graph)
@@ -400,9 +400,9 @@ def generate_financial_insights(cleaned_data, financial_data):
         top_priorities = extract_top_priorities(debt_heap)
         
         budget_categories = [
-            {"name": "essential", "max": monthly_budget * 0.6, "score": 10},
-            {"name": "debt_payment", "max": monthly_budget * 0.3, "score": 8},
-            {"name": "savings", "max": monthly_budget * 0.1, "score": 6}
+            {"name": "essential", "max": int(monthly_budget * 0.6), "score": 10},
+            {"name": "debt_payment", "max": int(monthly_budget * 0.3), "score": 8},
+            {"name": "savings", "max": int(monthly_budget * 0.1), "score": 6}
         ]
         optimal_budget, budget_score = backtrack_budget_allocation(budget_categories, int(monthly_budget))
         
@@ -520,7 +520,7 @@ Debt Duration: {financial_data.debt_duration}
                 },
                 "sliding_window": sliding_trend,
                 "heap_priority": {
-                    "top_priorities": top_priorities,
+                    "top_priorities": [{"index": p["index"], "priority": p["priority"], "amount": p["debt"].cost} for p in top_priorities],
                     "priority_count": len(top_priorities)
                 },
                 "backtracking": {
