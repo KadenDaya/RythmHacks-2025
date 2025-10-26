@@ -16,7 +16,7 @@ export default function Signup() {
     formData.append("password", password);
 
     try {
-      const response = await fetch("http://localhost:8000/register", {
+      const response = await fetch("http://52.90.72.192:8000/register", {
         method: "POST",
         headers: {
           "Content-Type": "application/x-www-form-urlencoded",
@@ -26,7 +26,7 @@ export default function Signup() {
 
       if (response.ok) {
         setMessage("Registration successful! Logging you in...");
-        const loginResponse = await fetch("http://localhost:8000/login", {
+        const loginResponse = await fetch("http://52.90.72.192:8000/login", {
           method: "POST",
           headers: {
             "Content-Type": "application/x-www-form-urlencoded",

@@ -18,7 +18,7 @@ export default function Login() {
 
     try {
       const endpoint = isLogin ? "login" : "register";
-      const response = await fetch(`http://localhost:8000/${endpoint}`, {
+      const response = await fetch(`http://52.90.72.192:8000/${endpoint}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/x-www-form-urlencoded",
@@ -37,7 +37,7 @@ export default function Login() {
           }
         } else {
           setMessage("Registration successful! Logging you in...");
-          const loginResponse = await fetch("http://localhost:8000/login", {
+          const loginResponse = await fetch("http://52.90.72.192:8000/login", {
             method: "POST",
             headers: {
               "Content-Type": "application/x-www-form-urlencoded",

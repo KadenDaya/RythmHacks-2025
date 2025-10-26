@@ -72,7 +72,7 @@ export default function Dashboard() {
         return
       }
 
-      const response = await fetch('http://localhost:8000/get-financial-data', {
+      const response = await fetch('http://52.90.72.192:8000/get-financial-data', {
         headers: {
           'Authorization': `Bearer ${token}`
         }

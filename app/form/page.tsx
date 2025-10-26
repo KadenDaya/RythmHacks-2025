@@ -63,7 +63,7 @@ export default function Form() {
         return;
       }
 
-      const response = await fetch("http://localhost:8000/submit-financial-info", {
+      const response = await fetch("http://52.90.72.192:8000/submit-financial-info", {
         method: "POST",
         headers: {
           "Authorization": `Bearer ${token}`,
