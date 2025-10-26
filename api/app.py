@@ -305,6 +305,112 @@ def generate_financial_insights(cleaned_data, financial_data):
         
         sliding_trend = sliding_window_trend(sorted_by_date)
         
+        # Heap algorithms for priority-based debt management
+        import heapq
+        
+        def priority_debt_queue(debts):
+            heap = []
+            for i, debt in enumerate(debts):
+                priority = debt.cost * 0.8 + (30 - abs(debt.purchaseDate.day - 15)) * 0.2
+                heapq.heappush(heap, (-priority, i, debt))
+            return heap
+        
+        def extract_top_priorities(heap, count=3):
+            priorities = []
+            temp_heap = heap.copy()
+            for _ in range(min(count, len(temp_heap))):
+                if temp_heap:
+                    priority, index, debt = heapq.heappop(temp_heap)
+                    priorities.append({
+                        "index": index,
+                        "debt": debt,
+                        "priority": -priority
+                    })
+            return priorities
+        
+        # Backtracking for budget optimization
+        def backtrack_budget_allocation(categories, budget, current_allocation=[], best_allocation=None, best_score=0):
+            if len(current_allocation) == len(categories):
+                total_score = sum(cat["score"] for cat in current_allocation)
+                if total_score > best_score:
+                    return current_allocation.copy(), total_score
+                return best_allocation, best_score
+            
+            category = categories[len(current_allocation)]
+            for amount in range(0, min(category["max"], budget) + 1, 50):
+                if amount <= budget:
+                    current_allocation.append({
+                        "name": category["name"],
+                        "amount": amount,
+                        "score": category["score"] * (amount / category["max"])
+                    })
+                    best_allocation, best_score = backtrack_budget_allocation(
+                        categories, budget - amount, current_allocation, best_allocation, best_score)
+                    current_allocation.pop()
+            
+            return best_allocation, best_score
+        
+        # Divide and conquer for large dataset processing
+        def divide_conquer_analysis(transactions, threshold=10):
+            if len(transactions) <= threshold:
+                return {
+                    "total_amount": sum(t.cost for t in transactions),
+                    "avg_amount": sum(t.cost for t in transactions) / len(transactions) if transactions else 0,
+                    "count": len(transactions)
+                }
+            
+            mid = len(transactions) // 2
+            left_result = divide_conquer_analysis(transactions[:mid], threshold)
+            right_result = divide_conquer_analysis(transactions[mid:], threshold)
+            
+            return {
+                "total_amount": left_result["total_amount"] + right_result["total_amount"],
+                "avg_amount": (left_result["avg_amount"] + right_result["avg_amount"]) / 2,
+                "count": left_result["count"] + right_result["count"],
+                "left": left_result,
+                "right": right_result
+            }
+        
+        # Two pointers technique for transaction matching
+        def two_pointers_matching(sorted_transactions, target_sum):
+            left, right = 0, len(sorted_transactions) - 1
+            matches = []
+            
+            while left < right:
+                current_sum = sorted_transactions[left].cost + sorted_transactions[right].cost
+                if current_sum == target_sum:
+                    matches.append({
+                        "left_index": left,
+                        "right_index": right,
+                        "left_amount": sorted_transactions[left].cost,
+                        "right_amount": sorted_transactions[right].cost,
+                        "sum": current_sum
+                    })
+                    left += 1
+                    right -= 1
+                elif current_sum < target_sum:
+                    left += 1
+                else:
+                    right -= 1
+            
+            return matches
+        
+        # Apply advanced algorithms
+        debt_heap = priority_debt_queue(unpaid_transactions)
+        top_priorities = extract_top_priorities(debt_heap)
+        
+        budget_categories = [
+            {"name": "essential", "max": monthly_budget * 0.6, "score": 10},
+            {"name": "debt_payment", "max": monthly_budget * 0.3, "score": 8},
+            {"name": "savings", "max": monthly_budget * 0.1, "score": 6}
+        ]
+        optimal_budget, budget_score = backtrack_budget_allocation(budget_categories, int(monthly_budget))
+        
+        dataset_analysis = divide_conquer_analysis(transaction_objects)
+        
+        target_sum = card_limit_float * 0.1
+        transaction_matches = two_pointers_matching(sorted_by_amount, target_sum)
+        
         # Use criteria.py for credit scoring
         credit_criteria = critera(user_card_data)
         credit_score_code = credit_criteria.messageReturnCodedName()
@@ -340,6 +446,10 @@ Dynamic Programming: {len(optimal_schedule)} optimal payment schedule items
 Graph Analysis: {len(spending_clusters)} spending clusters found
 Hash Table: {len(transaction_hash)} date-based transaction groups
 Sliding Window: {sliding_trend['trend']} trend with slope {sliding_trend.get('avg_slope', 0):.3f}
+Heap Priority: {len(top_priorities)} top priority debts identified
+Backtracking: {len(optimal_budget) if optimal_budget else 0} optimal budget allocations
+Divide Conquer: {dataset_analysis['count']} transactions processed
+Two Pointers: {len(transaction_matches)} transaction pairs found
 
 CUSTOM CREDIT ANALYSIS:
 Credit Utilization: {utilization_ratio:.2%}
@@ -408,7 +518,20 @@ Debt Duration: {financial_data.debt_duration}
                     "date_groups": len(transaction_hash),
                     "total_entries": sum(len(v) for v in transaction_hash.values())
                 },
-                "sliding_window": sliding_trend
+                "sliding_window": sliding_trend,
+                "heap_priority": {
+                    "top_priorities": top_priorities,
+                    "priority_count": len(top_priorities)
+                },
+                "backtracking": {
+                    "optimal_budget": optimal_budget,
+                    "budget_score": budget_score
+                },
+                "divide_conquer": dataset_analysis,
+                "two_pointers": {
+                    "matches": transaction_matches,
+                    "match_count": len(transaction_matches)
+                }
             }
         }
         
