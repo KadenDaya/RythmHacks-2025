@@ -12,6 +12,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from martianAPIWrapper import MartianClient
 from pdfToText import extract_pdf_text
 from dataInput import transactionData, date, cardData
+from criteria import critera
 
 models.Base.metadata.create_all(bind=database.engine)
 app = FastAPI()
@@ -32,8 +33,192 @@ def get_martian_client():
         raise HTTPException(status_code=500, detail="Martian API key not configured")
     return MartianClient(api_key)
 
+def detect_anomalies(transactions):
+    if len(transactions) < 3:
+        return []
+    
+    costs = [t.cost for t in transactions]
+    mean_cost = sum(costs) / len(costs)
+    variance = sum((x - mean_cost) ** 2 for x in costs) / len(costs)
+    std_dev = variance ** 0.5
+    
+    anomalies = []
+    for i, transaction in enumerate(transactions):
+        z_score = abs(transaction.cost - mean_cost) / std_dev if std_dev > 0 else 0
+        if z_score > 2.5:
+            anomalies.append({
+                "transaction_index": i,
+                "amount": transaction.cost,
+                "z_score": z_score,
+                "date": f"{transaction.purchaseDate.year}-{transaction.purchaseDate.month}-{transaction.purchaseDate.day}"
+            })
+    
+    return anomalies
+
 def generate_financial_insights(cleaned_data, financial_data):
     try:
+        # Create transaction objects using dataInput classes
+        transaction_objects = []
+        for purchase in cleaned_data.get("purchases", []):
+            transaction_obj = transactionData(
+                purchaseYear=purchase.get("purchase_year", 0),
+                purchaseMonth=purchase.get("purchase_month", 0),
+                purchaseDay=purchase.get("purchase_day", 0),
+                paymentYear=purchase.get("payment_year", -1),
+                paymentMonth=purchase.get("payment_month", -1),
+                paymentDay=purchase.get("payment_day", -1),
+                cost=float(purchase.get("cost", "0.00"))
+            )
+            transaction_objects.append(transaction_obj)
+        
+        # Detect anomalies in spending patterns
+        anomalies = detect_anomalies(transaction_objects)
+        
+        # Advanced sorting algorithms for transaction analysis
+        def quicksort_transactions(arr, key_func):
+            if len(arr) <= 1:
+                return arr
+            pivot = arr[len(arr) // 2]
+            left = [x for x in arr if key_func(x) < key_func(pivot)]
+            middle = [x for x in arr if key_func(x) == key_func(pivot)]
+            right = [x for x in arr if key_func(x) > key_func(pivot)]
+            return quicksort_transactions(left, key_func) + middle + quicksort_transactions(right, key_func)
+        
+        def mergesort_transactions(arr, key_func):
+            if len(arr) <= 1:
+                return arr
+            mid = len(arr) // 2
+            left = mergesort_transactions(arr[:mid], key_func)
+            right = mergesort_transactions(arr[mid:], key_func)
+            return merge(left, right, key_func)
+        
+        def merge(left, right, key_func):
+            result = []
+            i = j = 0
+            while i < len(left) and j < len(right):
+                if key_func(left[i]) <= key_func(right[j]):
+                    result.append(left[i])
+                    i += 1
+                else:
+                    result.append(right[j])
+                    j += 1
+            result.extend(left[i:])
+            result.extend(right[j:])
+            return result
+        
+        # Sort transactions by amount using quicksort
+        sorted_by_amount = quicksort_transactions(transaction_objects.copy(), lambda t: t.cost)
+        # Sort transactions by date using mergesort
+        sorted_by_date = mergesort_transactions(transaction_objects.copy(), 
+            lambda t: (t.purchaseDate.year, t.purchaseDate.month, t.purchaseDate.day))
+        
+        # Create cardData object
+        card_limit_float = float(cleaned_data.get("card_limit", "0")) if cleaned_data.get("card_limit") else 0.0
+        card_age_int = int(cleaned_data.get("card_age", "0")) if cleaned_data.get("card_age") else 0
+        
+        user_card_data = cardData(
+            cardLimit=card_limit_float,
+            transactionList=transaction_objects,
+            ageOfCard=card_age_int
+        )
+        
+        # Organize transactions and calculate utilization
+        user_card_data.organizeDataSet(user_card_data.transactionList)
+        user_card_data.percentageOfCardUsed(user_card_data.transactionList, user_card_data.cardLimit)
+        
+        # Search algorithms for financial analysis
+        def binary_search_transactions(sorted_transactions, target_amount):
+            left, right = 0, len(sorted_transactions) - 1
+            while left <= right:
+                mid = (left + right) // 2
+                if sorted_transactions[mid].cost == target_amount:
+                    return mid
+                elif sorted_transactions[mid].cost < target_amount:
+                    left = mid + 1
+                else:
+                    right = mid - 1
+            return -1
+        
+        def linear_search_unpaid(transactions):
+            unpaid_indices = []
+            for i, transaction in enumerate(transactions):
+                if transaction.paymentDate.year < 0:
+                    unpaid_indices.append(i)
+            return unpaid_indices
+        
+        # Greedy algorithm for debt optimization
+        def greedy_debt_payoff(unpaid_transactions, available_funds):
+            sorted_debts = sorted(unpaid_transactions, key=lambda t: t.cost, reverse=True)
+            payoff_plan = []
+            remaining_funds = available_funds
+            
+            for debt in sorted_debts:
+                if remaining_funds >= debt.cost:
+                    payoff_plan.append({
+                        "amount": debt.cost,
+                        "date": f"{debt.purchaseDate.year}-{debt.purchaseDate.month}-{debt.purchaseDate.day}",
+                        "action": "pay_full"
+                    })
+                    remaining_funds -= debt.cost
+                elif remaining_funds > 0:
+                    payoff_plan.append({
+                        "amount": remaining_funds,
+                        "date": f"{debt.purchaseDate.year}-{debt.purchaseDate.month}-{debt.purchaseDate.day}",
+                        "action": "pay_partial",
+                        "remaining": debt.cost - remaining_funds
+                    })
+                    remaining_funds = 0
+                else:
+                    break
+            
+            return payoff_plan
+        
+        # Apply search algorithms
+        unpaid_transactions = [t for t in transaction_objects if t.paymentDate.year < 0]
+        unpaid_indices = linear_search_unpaid(transaction_objects)
+        median_amount = sorted_by_amount[len(sorted_by_amount)//2].cost if sorted_by_amount else 0
+        median_index = binary_search_transactions(sorted_by_amount, median_amount)
+        
+        # Apply greedy debt optimization
+        total_unpaid = sum(t.cost for t in unpaid_transactions)
+        debt_payoff_plan = greedy_debt_payoff(unpaid_transactions, total_unpaid * 0.5)
+        
+        # Recursive trend analysis algorithm
+        def recursive_trend_analysis(transactions, depth=0, max_depth=3):
+            if depth >= max_depth or len(transactions) < 2:
+                return {"trend": "insufficient_data", "depth": depth}
+            
+            if len(transactions) == 2:
+                diff = transactions[1].cost - transactions[0].cost
+                return {"trend": "increasing" if diff > 0 else "decreasing" if diff < 0 else "stable", "depth": depth}
+            
+            mid = len(transactions) // 2
+            left_trend = recursive_trend_analysis(transactions[:mid], depth + 1, max_depth)
+            right_trend = recursive_trend_analysis(transactions[mid:], depth + 1, max_depth)
+            
+            if left_trend["trend"] == right_trend["trend"]:
+                return {"trend": left_trend["trend"], "depth": depth, "consistency": "high"}
+            else:
+                return {"trend": "mixed", "depth": depth, "left": left_trend["trend"], "right": right_trend["trend"]}
+        
+        # Apply recursive trend analysis
+        trend_analysis = recursive_trend_analysis(sorted_by_date)
+        
+        # Use criteria.py for credit scoring
+        credit_criteria = critera(user_card_data)
+        credit_score_code = credit_criteria.messageReturnCodedName()
+        utilization_ratio = user_card_data.getPercentageUsed()
+        
+        # Map credit score codes to descriptions
+        credit_score_descriptions = {
+            1: "Critical: High utilization + New card - Immediate action needed",
+            2: "Poor: High utilization + Established card - Reduce spending",
+            3: "Fair: Moderate utilization + New card - Build history",
+            4: "Fair: Moderate utilization + Established card - Maintain payments",
+            5: "Good: Low utilization + New card - Keep building history",
+            6: "Excellent: Low utilization + Established card - Perfect credit health"
+        }
+        
         with open("ai2.prompt", "r") as f:
             insights_prompt = f.read()
         
@@ -43,6 +228,20 @@ Card Limit: {cleaned_data.get("card_limit", "")}
 Card Age: {cleaned_data.get("card_age", "")} months
 Purchases: {cleaned_data.get("purchases", [])}
 Debt History: {cleaned_data.get("debt_history", [])}
+
+ALGORITHM ANALYSIS:
+Anomalies Detected: {len(anomalies)} transactions with z-score > 2.5
+Sorting Results: {len(sorted_by_amount)} transactions sorted by amount, {len(sorted_by_date)} by date
+Search Results: {len(unpaid_indices)} unpaid transactions found, median amount: {median_amount}
+Greedy Debt Plan: {len(debt_payoff_plan)} optimized payments
+Recursive Trend: {trend_analysis['trend']} pattern detected at depth {trend_analysis['depth']}
+
+CUSTOM CREDIT ANALYSIS:
+Credit Utilization: {utilization_ratio:.2%}
+Credit Score Code: {credit_score_code}
+Credit Health Status: {credit_score_descriptions.get(credit_score_code, "Unknown")}
+Total Transactions: {len(transaction_objects)}
+Card Age: {card_age_int} months
 
 RAW FINANCIAL DATA:
 Credit Card Limit: {financial_data.credit_card_limit}
@@ -58,7 +257,7 @@ Debt Duration: {financial_data.debt_duration}
         
         messages = [
             {"role": "system", "content": insights_prompt},
-            {"role": "user", "content": f"Analyze this financial data: {analysis_data}"}
+            {"role": "user", "content": f"Analyze this financial data with custom credit scoring: {analysis_data}"}
         ]
         
         response = martian_client.chat_completions(
@@ -72,12 +271,36 @@ Debt Duration: {financial_data.debt_duration}
         import json
         insights_json = json.loads(insights_analysis)
         
+        # Add custom credit scoring data to the response
+        insights_json["custom_credit_score"] = {
+            "score_code": credit_score_code,
+            "utilization_ratio": utilization_ratio,
+            "credit_health_status": credit_score_descriptions.get(credit_score_code, "Unknown"),
+            "card_age_months": card_age_int,
+            "total_transactions": len(transaction_objects),
+            "algorithm_results": {
+                "anomalies": anomalies,
+                "sorting_stats": {
+                    "quicksort_by_amount": len(sorted_by_amount),
+                    "mergesort_by_date": len(sorted_by_date)
+                },
+                "search_results": {
+                    "unpaid_count": len(unpaid_indices),
+                    "median_amount": median_amount,
+                    "median_found": median_index != -1
+                },
+                "greedy_debt_plan": debt_payoff_plan,
+                "recursive_trend": trend_analysis
+            }
+        }
+        
         return {
             "financial_metrics": json.dumps(insights_json.get("financial_metrics", {})),
             "insights": json.dumps(insights_json.get("insights", [])),
             "recommendations": json.dumps(insights_json.get("recommendations", [])),
             "risk_assessment": json.dumps(insights_json.get("risk_assessment", {})),
             "trends": json.dumps(insights_json.get("trends", {})),
+            "custom_credit_score": json.dumps(insights_json.get("custom_credit_score", {})),
             "ai_insights_text": insights_json.get("ai_insights_text", ""),
             "full_analysis": insights_analysis
         }
@@ -90,6 +313,7 @@ Debt Duration: {financial_data.debt_duration}
             "recommendations": "[]",
             "risk_assessment": "{}",
             "trends": "{}",
+            "custom_credit_score": "{}",
             "ai_insights_text": f"Error generating insights: {str(e)}",
             "full_analysis": f"Error: {str(e)}"
         }
@@ -268,19 +492,9 @@ PDF Statement Text: {pdf_text}
             financial_data.cleaned_debt_history = cleaned_debt_history
             financial_data.ai_analysis_result = ai_analysis
             financial_data.is_data_cleaned = True
-            db.commit()
-            db.refresh(financial_data)
+        db.commit()
+        db.refresh(financial_data)
         
-<<<<<<< Updated upstream
-        return {
-            "msg": "✓ Financial information saved and analyzed successfully!"
-        }
-        
-    except Exception as e:
-        return {
-            "msg": "✓ Financial information saved successfully! (AI analysis failed)"
-        }
-=======
         # Generate AI Insights
         try:
             insights_data = generate_financial_insights(cleaned_data, financial_data)
@@ -291,6 +505,7 @@ PDF Statement Text: {pdf_text}
                 existing_data.recommendations = insights_data.get("recommendations", "")
                 existing_data.risk_assessment = insights_data.get("risk_assessment", "")
                 existing_data.trends = insights_data.get("trends", "")
+                existing_data.custom_credit_score = insights_data.get("custom_credit_score", "")
                 existing_data.ai_insights_text = insights_data.get("ai_insights_text", "")
                 existing_data.ai_insights_result = insights_data.get("full_analysis", "")
                 existing_data.is_insights_generated = True
@@ -302,6 +517,7 @@ PDF Statement Text: {pdf_text}
                 financial_data.recommendations = insights_data.get("recommendations", "")
                 financial_data.risk_assessment = insights_data.get("risk_assessment", "")
                 financial_data.trends = insights_data.get("trends", "")
+                financial_data.custom_credit_score = insights_data.get("custom_credit_score", "")
                 financial_data.ai_insights_text = insights_data.get("ai_insights_text", "")
                 financial_data.ai_insights_result = insights_data.get("full_analysis", "")
                 financial_data.is_insights_generated = True
@@ -310,25 +526,24 @@ PDF Statement Text: {pdf_text}
         except Exception as insights_error:
             print(f"Insights generation failed: {insights_error}")
         
-            return {
-                "msg": "Financial information saved and analyzed successfully", 
-                "data_id": financial_data.id,
-                "ai_analysis": ai_analysis,
-                "cleaned_data": {
-                    "card_limit": cleaned_card_limit,
-                    "card_age": cleaned_card_age,
-                    "transaction_list": cleaned_transaction_list,
-                    "debt_history": cleaned_debt_history
-                }
+        return {
+            "msg": "Financial information saved and analyzed successfully", 
+            "data_id": financial_data.id,
+            "ai_analysis": ai_analysis,
+            "cleaned_data": {
+                "card_limit": cleaned_card_limit,
+                "card_age": cleaned_card_age,
+                "transaction_list": cleaned_transaction_list,
+                "debt_history": cleaned_debt_history
             }
+        }
         
     except Exception as e:
-            return {
-                "msg": "Financial information saved successfully (AI analysis failed)", 
-                "data_id": financial_data.id,
-                "error": str(e)
-            }
->>>>>>> Stashed changes
+        return {
+            "msg": "Financial information saved successfully (AI analysis failed)", 
+            "data_id": financial_data.id,
+            "error": str(e)
+        }
 
 @app.get("/get-financial-data")
 def get_financial_data(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
@@ -369,6 +584,7 @@ def get_financial_data(token: str = Depends(oauth2_scheme), db: Session = Depend
             "recommendations": financial_data.recommendations,
             "risk_assessment": financial_data.risk_assessment,
             "trends": financial_data.trends,
+            "custom_credit_score": financial_data.custom_credit_score,
             "ai_insights_text": financial_data.ai_insights_text,
             "ai_insights_result": financial_data.ai_insights_result,
             "is_insights_generated": financial_data.is_insights_generated
