@@ -96,10 +96,10 @@ export default function Signup() {
               key={i}
               className="absolute w-1 h-1 bg-orange-400/30 rounded-full animate-bounce"
               style={{
-                left: leftPos + '%',
-                top: topPos + '%',
-                animationDelay: delay + 's',
-                animationDuration: duration + 's'
+                left: pos.left + '%',
+                top: pos.top + '%',
+                animationDelay: pos.delay + 's',
+                animationDuration: pos.duration + 's'
               }}
             />
           );
