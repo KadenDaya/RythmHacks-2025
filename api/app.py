@@ -132,16 +132,29 @@ Total Transactions: {credit_score_data.get("total_transactions", 0)}
         plan_analysis = response.get("choices", [{}])[0].get("message", {}).get("content", "")
         
         # Parse the plan JSON
-        plan_json = json.loads(plan_analysis)
+        print(f"Raw plan_analysis: {plan_analysis[:500]}")  # Debug: print first 500 chars
+        
+        try:
+            plan_json = json.loads(plan_analysis)
+            print(f"Parsed plan_json keys: {plan_json.keys() if isinstance(plan_json, dict) else 'Not a dict'}")
+        except json.JSONDecodeError as json_err:
+            print(f"JSON decode error: {json_err}")
+            print(f"Full response: {plan_analysis}")
+            raise
+        
+        credit_plan = plan_json.get("credit_improvement_plan", {})
+        print(f"Extracted credit_plan keys: {credit_plan.keys() if isinstance(credit_plan, dict) else 'Not a dict'}")
         
         return {
-            "credit_improvement_plan": json.dumps(plan_json.get("credit_improvement_plan", {})),
+            "credit_improvement_plan": json.dumps(credit_plan),
             "plan_generated": True,
             "plan_timestamp": "2024-01-01T00:00:00Z"
         }
         
     except Exception as e:
         print(f"Error generating credit improvement plan: {e}")
+        import traceback
+        traceback.print_exc()
         return {
             "credit_improvement_plan": "{}",
             "plan_generated": False,
@@ -909,6 +922,48 @@ def get_financial_data(token: str = Depends(oauth2_scheme), db: Session = Depend
     if not financial_data:
         raise HTTPException(status_code=404, detail="No financial data found")
     
+    # Check if plan exists and is valid
+    credit_plan = financial_data.credit_improvement_plan
+    
+    # If plan is missing or empty, generate it now
+    if not credit_plan or credit_plan == "" or credit_plan == "{}":
+        print("⚠️ No credit plan found, generating one now...")
+        try:
+            import json
+            # Parse all the existing data
+            metrics_data = json.loads(financial_data.financial_metrics) if financial_data.financial_metrics else {}
+            insights_data = json.loads(financial_data.insights) if financial_data.insights else []
+            recommendations_data = json.loads(financial_data.recommendations) if financial_data.recommendations else []
+            risk_data = json.loads(financial_data.risk_assessment) if financial_data.risk_assessment else {}
+            trends_data = json.loads(financial_data.trends) if financial_data.trends else {}
+            credit_score_data = json.loads(financial_data.custom_credit_score) if financial_data.custom_credit_score else {}
+            
+            # Generate the plan
+            plan_data = generate_credit_improvement_plan(
+                financial_data.financial_metrics if financial_data.financial_metrics else "{}",
+                financial_data.insights if financial_data.insights else "[]",
+                financial_data.recommendations if financial_data.recommendations else "[]",
+                financial_data.risk_assessment if financial_data.risk_assessment else "{}",
+                financial_data.trends if financial_data.trends else "{}",
+                financial_data.custom_credit_score if financial_data.custom_credit_score else "{}"
+            )
+            
+            # Save the new plan to the database
+            financial_data.credit_improvement_plan = plan_data.get("credit_improvement_plan", "{}")
+            financial_data.is_plan_generated = True
+            db.commit()
+            db.refresh(financial_data)
+            
+            credit_plan = financial_data.credit_improvement_plan
+            print("✅ Credit plan generated and saved successfully")
+        except Exception as e:
+            print(f"❌ Failed to generate plan on fly: {e}")
+            import traceback
+            traceback.print_exc()
+            credit_plan = "{}"
+    else:
+        print("✅ Using existing credit plan")
+    
     return {
         "raw_data": {
             "credit_card_limit": financial_data.credit_card_limit,
@@ -935,9 +990,11 @@ def get_financial_data(token: str = Depends(oauth2_scheme), db: Session = Depend
             "risk_assessment": financial_data.risk_assessment,
             "trends": financial_data.trends,
             "custom_credit_score": financial_data.custom_credit_score,
+            "credit_improvement_plan": credit_plan,
             "ai_insights_text": financial_data.ai_insights_text,
             "ai_insights_result": financial_data.ai_insights_result,
-            "is_insights_generated": financial_data.is_insights_generated
+            "is_insights_generated": financial_data.is_insights_generated,
+            "is_plan_generated": financial_data.is_plan_generated
         }
     }
 
