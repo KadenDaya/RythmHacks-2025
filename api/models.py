@@ -30,4 +30,13 @@ class FinancialData(Base):
     ai_analysis_result = Column(Text)
     is_data_cleaned = Column(Boolean, default=False)
     
+    financial_metrics = Column(Text)
+    insights = Column(Text)
+    recommendations = Column(Text)
+    risk_assessment = Column(Text)
+    trends = Column(Text)
+    ai_insights_text = Column(Text)
+    ai_insights_result = Column(Text)
+    is_insights_generated = Column(Boolean, default=False)
+    
     user = relationship("User", back_populates="financial_data")
