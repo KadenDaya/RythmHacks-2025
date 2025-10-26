@@ -55,6 +55,99 @@ def detect_anomalies(transactions):
     
     return anomalies
 
+def generate_credit_improvement_plan(financial_metrics, insights, recommendations, risk_assessment, trends, custom_credit_score):
+    try:
+        with open("credit_plan_prompt.txt", "r") as f:
+            plan_prompt = f.read()
+        
+        # Parse all the JSON data
+        import json
+        metrics_data = json.loads(financial_metrics) if financial_metrics else {}
+        insights_data = json.loads(insights) if insights else []
+        recommendations_data = json.loads(recommendations) if recommendations else []
+        risk_data = json.loads(risk_assessment) if risk_assessment else {}
+        trends_data = json.loads(trends) if trends else {}
+        credit_score_data = json.loads(custom_credit_score) if custom_credit_score else {}
+        
+        # Extract algorithm results
+        algorithm_results = credit_score_data.get("algorithm_results", {})
+        
+        comprehensive_data = f"""
+COMPREHENSIVE FINANCIAL ANALYSIS FOR CREDIT IMPROVEMENT PLAN:
+
+FINANCIAL METRICS:
+{json.dumps(metrics_data, indent=2)}
+
+AI INSIGHTS:
+{json.dumps(insights_data, indent=2)}
+
+RECOMMENDATIONS:
+{json.dumps(recommendations_data, indent=2)}
+
+RISK ASSESSMENT:
+{json.dumps(risk_data, indent=2)}
+
+TRENDS ANALYSIS:
+{json.dumps(trends_data, indent=2)}
+
+CUSTOM CREDIT SCORE:
+{json.dumps(credit_score_data, indent=2)}
+
+ALGORITHM ANALYSIS RESULTS:
+Anomaly Detection: {json.dumps(algorithm_results.get("anomalies", []), indent=2)}
+Sorting Analysis: {json.dumps(algorithm_results.get("sorting_stats", {}), indent=2)}
+Search Results: {json.dumps(algorithm_results.get("search_results", {}), indent=2)}
+Greedy Debt Plan: {json.dumps(algorithm_results.get("greedy_debt_plan", []), indent=2)}
+Recursive Trend: {json.dumps(algorithm_results.get("recursive_trend", {}), indent=2)}
+Dynamic Programming: {json.dumps(algorithm_results.get("dynamic_programming", {}), indent=2)}
+Graph Analysis: {json.dumps(algorithm_results.get("graph_analysis", {}), indent=2)}
+Hash Table Analysis: {json.dumps(algorithm_results.get("hash_table", {}), indent=2)}
+Sliding Window: {json.dumps(algorithm_results.get("sliding_window", {}), indent=2)}
+Heap Priority: {json.dumps(algorithm_results.get("heap_priority", {}), indent=2)}
+Backtracking: {json.dumps(algorithm_results.get("backtracking", {}), indent=2)}
+Divide & Conquer: {json.dumps(algorithm_results.get("divide_conquer", {}), indent=2)}
+Two Pointers: {json.dumps(algorithm_results.get("two_pointers", {}), indent=2)}
+
+CREDIT SCORE DETAILS:
+Current Score Code: {credit_score_data.get("score_code", 0)}
+Utilization Ratio: {credit_score_data.get("utilization_ratio", 0)}
+Credit Health Status: {credit_score_data.get("credit_health_status", "Unknown")}
+Card Age: {credit_score_data.get("card_age_months", 0)} months
+Total Transactions: {credit_score_data.get("total_transactions", 0)}
+"""
+        
+        martian_client = get_martian_client()
+        
+        messages = [
+            {"role": "system", "content": plan_prompt},
+            {"role": "user", "content": f"Create a comprehensive credit improvement plan based on this complete financial analysis: {comprehensive_data}"}
+        ]
+        
+        response = martian_client.chat_completions(
+            model="openai/gpt-4.1-nano:cheap",
+            messages=messages,
+            temperature=0.1
+        )
+        
+        plan_analysis = response.get("choices", [{}])[0].get("message", {}).get("content", "")
+        
+        # Parse the plan JSON
+        plan_json = json.loads(plan_analysis)
+        
+        return {
+            "credit_improvement_plan": json.dumps(plan_json.get("credit_improvement_plan", {})),
+            "plan_generated": True,
+            "plan_timestamp": "2024-01-01T00:00:00Z"
+        }
+        
+    except Exception as e:
+        print(f"Error generating credit improvement plan: {e}")
+        return {
+            "credit_improvement_plan": "{}",
+            "plan_generated": False,
+            "error": str(e)
+        }
+
 def generate_financial_insights(cleaned_data, financial_data):
     try:
         # Create transaction objects using dataInput classes
@@ -535,6 +628,16 @@ Debt Duration: {financial_data.debt_duration}
             }
         }
         
+        # Generate comprehensive credit improvement plan
+        plan_data = generate_credit_improvement_plan(
+            json.dumps(insights_json.get("financial_metrics", {})),
+            json.dumps(insights_json.get("insights", [])),
+            json.dumps(insights_json.get("recommendations", [])),
+            json.dumps(insights_json.get("risk_assessment", {})),
+            json.dumps(insights_json.get("trends", {})),
+            json.dumps(insights_json.get("custom_credit_score", {}))
+        )
+        
         return {
             "financial_metrics": json.dumps(insights_json.get("financial_metrics", {})),
             "insights": json.dumps(insights_json.get("insights", [])),
@@ -542,6 +645,7 @@ Debt Duration: {financial_data.debt_duration}
             "risk_assessment": json.dumps(insights_json.get("risk_assessment", {})),
             "trends": json.dumps(insights_json.get("trends", {})),
             "custom_credit_score": json.dumps(insights_json.get("custom_credit_score", {})),
+            "credit_improvement_plan": plan_data.get("credit_improvement_plan", "{}"),
             "ai_insights_text": insights_json.get("ai_insights_text", ""),
             "full_analysis": insights_analysis
         }
@@ -555,6 +659,7 @@ Debt Duration: {financial_data.debt_duration}
             "risk_assessment": "{}",
             "trends": "{}",
             "custom_credit_score": "{}",
+            "credit_improvement_plan": "{}",
             "ai_insights_text": f"Error generating insights: {str(e)}",
             "full_analysis": f"Error: {str(e)}"
         }
@@ -747,9 +852,11 @@ PDF Statement Text: {pdf_text}
                 existing_data.risk_assessment = insights_data.get("risk_assessment", "")
                 existing_data.trends = insights_data.get("trends", "")
                 existing_data.custom_credit_score = insights_data.get("custom_credit_score", "")
+                existing_data.credit_improvement_plan = insights_data.get("credit_improvement_plan", "")
                 existing_data.ai_insights_text = insights_data.get("ai_insights_text", "")
                 existing_data.ai_insights_result = insights_data.get("full_analysis", "")
                 existing_data.is_insights_generated = True
+                existing_data.is_plan_generated = True
                 db.commit()
                 db.refresh(existing_data)
             else:
@@ -759,9 +866,11 @@ PDF Statement Text: {pdf_text}
                 financial_data.risk_assessment = insights_data.get("risk_assessment", "")
                 financial_data.trends = insights_data.get("trends", "")
                 financial_data.custom_credit_score = insights_data.get("custom_credit_score", "")
+                financial_data.credit_improvement_plan = insights_data.get("credit_improvement_plan", "")
                 financial_data.ai_insights_text = insights_data.get("ai_insights_text", "")
                 financial_data.ai_insights_result = insights_data.get("full_analysis", "")
                 financial_data.is_insights_generated = True
+                financial_data.is_plan_generated = True
                 db.commit()
                 db.refresh(financial_data)
         except Exception as insights_error:
@@ -776,7 +885,17 @@ PDF Statement Text: {pdf_text}
                 "card_age": cleaned_card_age,
                 "transaction_list": cleaned_transaction_list,
                 "debt_history": cleaned_debt_history
-            }
+            },
+            "financial_metrics": insights_data.get("financial_metrics", "{}"),
+            "insights": insights_data.get("insights", "[]"),
+            "recommendations": insights_data.get("recommendations", "[]"),
+            "risk_assessment": insights_data.get("risk_assessment", "{}"),
+            "trends": insights_data.get("trends", "{}"),
+            "custom_credit_score": insights_data.get("custom_credit_score", "{}"),
+            "credit_improvement_plan": insights_data.get("credit_improvement_plan", "{}"),
+            "ai_insights_text": insights_data.get("ai_insights_text", ""),
+            "is_insights_generated": True,
+            "is_plan_generated": True
         }
         
     except Exception as e:
@@ -826,9 +945,11 @@ def get_financial_data(token: str = Depends(oauth2_scheme), db: Session = Depend
             "risk_assessment": financial_data.risk_assessment,
             "trends": financial_data.trends,
             "custom_credit_score": financial_data.custom_credit_score,
+            "credit_improvement_plan": financial_data.credit_improvement_plan,
             "ai_insights_text": financial_data.ai_insights_text,
             "ai_insights_result": financial_data.ai_insights_result,
-            "is_insights_generated": financial_data.is_insights_generated
+            "is_insights_generated": financial_data.is_insights_generated,
+            "is_plan_generated": financial_data.is_plan_generated
         }
     }
 

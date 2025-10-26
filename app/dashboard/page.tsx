@@ -27,9 +27,12 @@ interface FinancialData {
     recommendations: string
     risk_assessment: string
     trends: string
+    custom_credit_score: string
+    credit_improvement_plan: string
     ai_insights_text: string
     ai_insights_result: string
     is_insights_generated: boolean
+    is_plan_generated: boolean
   }
 }
 
@@ -37,6 +40,7 @@ export default function Dashboard() {
   const [financialData, setFinancialData] = useState<FinancialData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [activeTab, setActiveTab] = useState<'analytics' | 'plan'>('analytics')
 
   useEffect(() => {
     fetchFinancialData()
@@ -136,6 +140,8 @@ export default function Dashboard() {
   const recommendations = parseJsonSafely(financialData?.insights?.recommendations || '[]')
   const riskAssessment = parseJsonSafely(financialData?.insights?.risk_assessment || '{}')
   const trends = parseJsonSafely(financialData?.insights?.trends || '{}')
+  const customCreditScore = parseJsonSafely(financialData?.insights?.custom_credit_score || '{}')
+  const creditPlan = parseJsonSafely(financialData?.insights?.credit_improvement_plan || '{}')
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-orange-900 to-red-900 p-6 relative overflow-hidden">
@@ -177,19 +183,48 @@ export default function Dashboard() {
           <p className="text-orange-200 text-lg">Your Financial Health Overview</p>
         </div>
 
-        {financialData?.insights?.ai_insights_text && (
-          <div className="bg-gradient-to-r from-orange-800/20 to-red-800/20 backdrop-blur-sm rounded-2xl p-6 shadow-xl border border-orange-500/30 mb-8">
-            <div className="flex items-center mb-4">
-              <div className="w-8 h-8 bg-gradient-to-r from-orange-400 to-red-400 rounded-full flex items-center justify-center mr-3">
-                <span className="text-white text-sm font-bold">AI</span>
-              </div>
-              <h2 className="text-2xl font-bold text-orange-300">AI Financial Insights</h2>
-            </div>
-            <p className="text-orange-100 leading-relaxed text-lg">
-              {financialData.insights.ai_insights_text}
-            </p>
+        {/* Tab Navigation */}
+        <div className="mb-8">
+          <div className="flex space-x-1 bg-slate-800/50 backdrop-blur-sm rounded-lg p-1 border border-orange-500/20 max-w-md mx-auto">
+            <button
+              onClick={() => setActiveTab('analytics')}
+              className={`px-6 py-3 rounded-md font-medium transition-all duration-200 flex-1 ${
+                activeTab === 'analytics'
+                  ? 'bg-orange-500 text-white shadow-lg'
+                  : 'text-orange-200 hover:text-white hover:bg-slate-700/50'
+              }`}
+            >
+              Analytics
+            </button>
+            <button
+              onClick={() => setActiveTab('plan')}
+              className={`px-6 py-3 rounded-md font-medium transition-all duration-200 flex-1 ${
+                activeTab === 'plan'
+                  ? 'bg-orange-500 text-white shadow-lg'
+                  : 'text-orange-200 hover:text-white hover:bg-slate-700/50'
+              }`}
+            >
+              Personal Plan
+            </button>
           </div>
-        )}
+        </div>
+
+        {/* Tab Content */}
+        {activeTab === 'analytics' && (
+          <>
+            {financialData?.insights?.ai_insights_text && (
+              <div className="bg-gradient-to-r from-orange-800/20 to-red-800/20 backdrop-blur-sm rounded-2xl p-6 shadow-xl border border-orange-500/30 mb-8">
+                <div className="flex items-center mb-4">
+                  <div className="w-8 h-8 bg-gradient-to-r from-orange-400 to-red-400 rounded-full flex items-center justify-center mr-3">
+                    <span className="text-white text-sm font-bold">AI</span>
+                  </div>
+                  <h2 className="text-2xl font-bold text-orange-300">AI Financial Insights</h2>
+                </div>
+                <p className="text-orange-100 leading-relaxed text-lg">
+                  {financialData.insights.ai_insights_text}
+                </p>
+              </div>
+            )}
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <div className="space-y-6">
@@ -362,6 +397,132 @@ export default function Dashboard() {
             </div>
           </div>
         </div>
+          </>
+        )}
+
+        {activeTab === 'plan' && (
+          <div className="space-y-8">
+            {/* Credit Score Overview */}
+            {customCreditScore && Object.keys(customCreditScore).length > 0 && (
+              <div className="bg-gradient-to-r from-orange-800/20 to-red-800/20 backdrop-blur-sm rounded-2xl p-6 shadow-xl border border-orange-500/30">
+                <div className="flex items-center mb-4">
+                  <div className="w-8 h-8 bg-gradient-to-r from-orange-400 to-red-400 rounded-full flex items-center justify-center mr-3">
+                    <span className="text-white text-sm font-bold">CS</span>
+                  </div>
+                  <h2 className="text-2xl font-bold text-orange-300">Credit Score Analysis</h2>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="text-center">
+                    <div className="text-3xl font-bold text-orange-400 mb-2">{customCreditScore.score_code || 'N/A'}</div>
+                    <div className="text-orange-200">Score Code</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-3xl font-bold text-orange-400 mb-2">{((customCreditScore.utilization_ratio || 0) * 100).toFixed(1)}%</div>
+                    <div className="text-orange-200">Utilization</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-lg font-bold text-orange-400 mb-2">{customCreditScore.card_age_months || 'N/A'}</div>
+                    <div className="text-orange-200">Card Age (months)</div>
+                  </div>
+                </div>
+                <div className="mt-4 p-4 bg-slate-700/50 rounded-lg">
+                  <p className="text-orange-100">{customCreditScore.credit_health_status || 'No status available'}</p>
+                </div>
+              </div>
+            )}
+
+            {/* Credit Improvement Plan */}
+            {creditPlan && Object.keys(creditPlan).length > 0 && (
+              <div className="bg-slate-800/90 backdrop-blur-sm rounded-2xl p-6 shadow-xl border border-orange-500/20">
+                <h3 className="text-2xl font-bold text-orange-300 mb-6">Personal Credit Improvement Plan</h3>
+                
+                {/* Plan Overview */}
+                {creditPlan.overview && (
+                  <div className="mb-8">
+                    <h4 className="text-xl font-bold text-orange-400 mb-4">Plan Overview</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="p-4 bg-slate-700/50 rounded-lg">
+                        <div className="text-orange-200 mb-2">Current Score</div>
+                        <div className="text-2xl font-bold text-orange-400">{creditPlan.overview.current_credit_score_code || 'N/A'}</div>
+                      </div>
+                      <div className="p-4 bg-slate-700/50 rounded-lg">
+                        <div className="text-orange-200 mb-2">Target Score</div>
+                        <div className="text-2xl font-bold text-orange-400">{creditPlan.overview.target_credit_score_code || 'N/A'}</div>
+                      </div>
+                      <div className="p-4 bg-slate-700/50 rounded-lg">
+                        <div className="text-orange-200 mb-2">Timeline</div>
+                        <div className="text-lg font-bold text-orange-400">{creditPlan.overview.estimated_timeline_months || 'N/A'} months</div>
+                      </div>
+                      <div className="p-4 bg-slate-700/50 rounded-lg">
+                        <div className="text-orange-200 mb-2">Priority</div>
+                        <div className="text-lg font-bold text-orange-400 capitalize">{creditPlan.overview.priority_level || 'N/A'}</div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Phase 1: Immediate Actions */}
+                {creditPlan.phase_1_immediate_actions && (
+                  <div className="mb-8">
+                    <h4 className="text-xl font-bold text-orange-400 mb-4">Phase 1: Immediate Actions (0-30 days)</h4>
+                    <div className="space-y-4">
+                      {creditPlan.phase_1_immediate_actions.actions && creditPlan.phase_1_immediate_actions.actions.map((action: any, index: number) => (
+                        <div key={index} className="p-4 bg-gradient-to-r from-orange-800/20 to-red-800/20 rounded-lg border border-orange-500/30">
+                          <div className="flex items-center justify-between mb-2">
+                            <h5 className="font-semibold text-orange-300">{action.title}</h5>
+                            <span className={`px-2 py-1 rounded text-xs font-bold ${
+                              action.priority === 'urgent' ? 'bg-red-500/20 text-red-400' :
+                              action.priority === 'high' ? 'bg-orange-500/20 text-orange-400' :
+                              action.priority === 'medium' ? 'bg-yellow-500/20 text-yellow-400' :
+                              'bg-green-500/20 text-green-400'
+                            }`}>
+                              {action.priority}
+                            </span>
+                          </div>
+                          <p className="text-orange-200 text-sm mb-2">{action.description}</p>
+                          <div className="flex justify-between text-xs text-orange-300">
+                            <span>Cost: ${action.cost || 0}</span>
+                            <span>Time: {action.time_required_hours || 0}h</span>
+                            <span className="capitalize">{action.difficulty || 'N/A'}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Executive Summary */}
+                {creditPlan.executive_summary && (
+                  <div className="mt-8 p-6 bg-gradient-to-r from-orange-800/20 to-red-800/20 rounded-lg border border-orange-500/30">
+                    <h4 className="text-xl font-bold text-orange-400 mb-4">Executive Summary</h4>
+                    <p className="text-orange-100 leading-relaxed">{creditPlan.executive_summary}</p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Algorithm Insights */}
+            {customCreditScore?.algorithm_results && (
+              <div className="bg-slate-800/90 backdrop-blur-sm rounded-2xl p-6 shadow-xl border border-orange-500/20">
+                <h3 className="text-xl font-bold text-orange-300 mb-4">Algorithm Analysis Results</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div className="p-4 bg-slate-700/50 rounded-lg">
+                    <h4 className="font-semibold text-orange-400 mb-2">Anomaly Detection</h4>
+                    <p className="text-orange-200 text-sm">{customCreditScore.algorithm_results.anomalies?.length || 0} anomalies found</p>
+                  </div>
+                  <div className="p-4 bg-slate-700/50 rounded-lg">
+                    <h4 className="font-semibold text-orange-400 mb-2">Sorting Analysis</h4>
+                    <p className="text-orange-200 text-sm">{customCreditScore.algorithm_results.sorting_stats?.quicksort_by_amount || 0} transactions sorted</p>
+                  </div>
+                  <div className="p-4 bg-slate-700/50 rounded-lg">
+                    <h4 className="font-semibold text-orange-400 mb-2">Search Results</h4>
+                    <p className="text-orange-200 text-sm">{customCreditScore.algorithm_results.search_results?.unpaid_count || 0} unpaid transactions</p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   )

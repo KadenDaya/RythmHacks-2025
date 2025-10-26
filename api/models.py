@@ -35,8 +35,11 @@ class FinancialData(Base):
     recommendations = Column(Text)
     risk_assessment = Column(Text)
     trends = Column(Text)
+    custom_credit_score = Column(Text)
+    credit_improvement_plan = Column(Text)
     ai_insights_text = Column(Text)
     ai_insights_result = Column(Text)
     is_insights_generated = Column(Boolean, default=False)
+    is_plan_generated = Column(Boolean, default=False)
     
     user = relationship("User", back_populates="financial_data")
