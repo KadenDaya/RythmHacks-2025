@@ -82,10 +82,26 @@ export default function Login() {
       
       <div className="absolute inset-0 overflow-hidden">
         {Array.from({ length: 15 }).map((_, i) => {
-          const leftPos = Math.random() * 100;
-          const topPos = Math.random() * 100;
-          const delay = Math.random() * 3;
-          const duration = 2 + Math.random() * 3;
+          // Fixed positions to prevent hydration mismatch
+          const positions = [
+            { left: 17.8, top: 46.4, delay: 0.49, duration: 4.76 },
+            { left: 72.2, top: 3.3, delay: 0.90, duration: 2.18 },
+            { left: 74.6, top: 9.8, delay: 1.77, duration: 3.73 },
+            { left: 34.4, top: 78.0, delay: 2.28, duration: 4.92 },
+            { left: 66.5, top: 20.4, delay: 1.95, duration: 3.64 },
+            { left: 28.0, top: 27.7, delay: 2.83, duration: 4.85 },
+            { left: 31.5, top: 73.7, delay: 0.65, duration: 2.77 },
+            { left: 89.6, top: 21.8, delay: 1.14, duration: 4.97 },
+            { left: 6.2, top: 18.1, delay: 2.75, duration: 3.55 },
+            { left: 19.9, top: 89.7, delay: 1.22, duration: 4.99 },
+            { left: 2.1, top: 81.7, delay: 2.73, duration: 3.86 },
+            { left: 75.8, top: 14.4, delay: 1.12, duration: 4.37 },
+            { left: 75.0, top: 70.8, delay: 2.37, duration: 4.63 },
+            { left: 93.3, top: 6.2, delay: 0.09, duration: 3.56 },
+            { left: 81.7, top: 46.0, delay: 0.75, duration: 4.88 }
+          ];
+          
+          const pos = positions[i] || { left: 50, top: 50, delay: 1, duration: 3 };
           
           return (
             <div
