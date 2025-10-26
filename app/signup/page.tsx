@@ -54,7 +54,7 @@ export default function Signup() {
       }
     } catch (error) {
       console.log("Error caught:", error);
-      setMessage(`Connection error: ${error.message}`);
+      setMessage(`Connection error: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
 
