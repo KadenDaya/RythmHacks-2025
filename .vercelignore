@@ -1,0 +1,36 @@
+# Python backend files
+*.py
+api/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Python dependencies
+requirements.txt
+venv/
+env/
+ENV/
+
+# Docker files
+Dockerfile
+.dockerignore
+docker-compose.yml
+
+# AI prompts
+*.prompt
+*.txt
+
+# Backend data
+dataInput.py
+criteria.py
+main.py
+martianAPIWrapper.py
+pdfToText.py
+
+# Python config
+Pipfile
+Pipfile.lock
+
+*.md
+README.md
