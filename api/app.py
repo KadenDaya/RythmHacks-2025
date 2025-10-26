@@ -204,6 +204,107 @@ def generate_financial_insights(cleaned_data, financial_data):
         # Apply recursive trend analysis
         trend_analysis = recursive_trend_analysis(sorted_by_date)
         
+        # Dynamic programming for optimal payment scheduling
+        def optimal_payment_schedule(debts, monthly_budget):
+            n = len(debts)
+            dp = [[0 for _ in range(monthly_budget + 1)] for _ in range(n + 1)]
+            
+            for i in range(1, n + 1):
+                debt_amount = int(debts[i-1].cost)
+                for budget in range(monthly_budget + 1):
+                    if debt_amount <= budget:
+                        dp[i][budget] = max(dp[i-1][budget], 
+                                          dp[i-1][budget - debt_amount] + debt_amount)
+                    else:
+                        dp[i][budget] = dp[i-1][budget]
+            
+            # Reconstruct optimal schedule
+            schedule = []
+            budget = monthly_budget
+            for i in range(n, 0, -1):
+                if dp[i][budget] != dp[i-1][budget]:
+                    debt_amount = int(debts[i-1].cost)
+                    schedule.append({
+                        "debt_index": i-1,
+                        "amount": debt_amount,
+                        "month": len(schedule) + 1
+                    })
+                    budget -= debt_amount
+            
+            return schedule
+        
+        # Graph algorithms for spending pattern analysis
+        def build_spending_graph(transactions):
+            graph = {}
+            for i, t1 in enumerate(transactions):
+                graph[i] = []
+                for j, t2 in enumerate(transactions):
+                    if i != j:
+                        time_diff = abs((t1.purchaseDate.year - t2.purchaseDate.year) * 365 + 
+                                      (t1.purchaseDate.month - t2.purchaseDate.month) * 30 + 
+                                      (t1.purchaseDate.day - t2.purchaseDate.day))
+                        if time_diff <= 7 and abs(t1.cost - t2.cost) <= 50:
+                            graph[i].append(j)
+            return graph
+        
+        def dfs_spending_clusters(graph, visited, node, cluster):
+            visited[node] = True
+            cluster.append(node)
+            for neighbor in graph[node]:
+                if not visited[neighbor]:
+                    dfs_spending_clusters(graph, visited, neighbor, cluster)
+        
+        def find_spending_clusters(graph):
+            visited = [False] * len(graph)
+            clusters = []
+            for node in range(len(graph)):
+                if not visited[node]:
+                    cluster = []
+                    dfs_spending_clusters(graph, visited, node, cluster)
+                    if len(cluster) > 1:
+                        clusters.append(cluster)
+            return clusters
+        
+        # Hash table for transaction lookup optimization
+        def build_transaction_hash_table(transactions):
+            hash_table = {}
+            for i, transaction in enumerate(transactions):
+                key = f"{transaction.purchaseDate.year}-{transaction.purchaseDate.month}-{transaction.purchaseDate.day}"
+                if key not in hash_table:
+                    hash_table[key] = []
+                hash_table[key].append(i)
+            return hash_table
+        
+        # Sliding window for trend detection
+        def sliding_window_trend(transactions, window_size=5):
+            if len(transactions) < window_size:
+                return {"trend": "insufficient_data"}
+            
+            trends = []
+            for i in range(len(transactions) - window_size + 1):
+                window = transactions[i:i + window_size]
+                costs = [t.cost for t in window]
+                slope = (costs[-1] - costs[0]) / window_size
+                trends.append(slope)
+            
+            avg_slope = sum(trends) / len(trends)
+            return {
+                "trend": "increasing" if avg_slope > 0.1 else "decreasing" if avg_slope < -0.1 else "stable",
+                "avg_slope": avg_slope,
+                "window_size": window_size
+            }
+        
+        # Apply advanced algorithms
+        monthly_budget = card_limit_float * 0.3
+        optimal_schedule = optimal_payment_schedule(unpaid_transactions, int(monthly_budget))
+        
+        spending_graph = build_spending_graph(transaction_objects)
+        spending_clusters = find_spending_clusters(spending_graph)
+        
+        transaction_hash = build_transaction_hash_table(transaction_objects)
+        
+        sliding_trend = sliding_window_trend(sorted_by_date)
+        
         # Use criteria.py for credit scoring
         credit_criteria = critera(user_card_data)
         credit_score_code = credit_criteria.messageReturnCodedName()
@@ -235,6 +336,10 @@ Sorting Results: {len(sorted_by_amount)} transactions sorted by amount, {len(sor
 Search Results: {len(unpaid_indices)} unpaid transactions found, median amount: {median_amount}
 Greedy Debt Plan: {len(debt_payoff_plan)} optimized payments
 Recursive Trend: {trend_analysis['trend']} pattern detected at depth {trend_analysis['depth']}
+Dynamic Programming: {len(optimal_schedule)} optimal payment schedule items
+Graph Analysis: {len(spending_clusters)} spending clusters found
+Hash Table: {len(transaction_hash)} date-based transaction groups
+Sliding Window: {sliding_trend['trend']} trend with slope {sliding_trend.get('avg_slope', 0):.3f}
 
 CUSTOM CREDIT ANALYSIS:
 Credit Utilization: {utilization_ratio:.2%}
@@ -290,7 +395,20 @@ Debt Duration: {financial_data.debt_duration}
                     "median_found": median_index != -1
                 },
                 "greedy_debt_plan": debt_payoff_plan,
-                "recursive_trend": trend_analysis
+                "recursive_trend": trend_analysis,
+                "dynamic_programming": {
+                    "optimal_schedule": optimal_schedule,
+                    "monthly_budget": monthly_budget
+                },
+                "graph_analysis": {
+                    "spending_clusters": spending_clusters,
+                    "cluster_count": len(spending_clusters)
+                },
+                "hash_table": {
+                    "date_groups": len(transaction_hash),
+                    "total_entries": sum(len(v) for v in transaction_hash.values())
+                },
+                "sliding_window": sliding_trend
             }
         }
         
