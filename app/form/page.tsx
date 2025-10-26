@@ -74,6 +74,9 @@ export default function Form() {
       if (response.ok) {
         const result = await response.json();
         setMessage(result.msg || "✓ Information submitted successfully!");
+        setTimeout(() => {
+          router.push("/dashboard");
+        }, 2000);
       } else {
         const error = await response.json();
         setMessage(error.detail || "Error submitting information");
@@ -97,18 +100,25 @@ export default function Form() {
       </div>
       
       <div className="absolute inset-0 overflow-hidden">
-        {Array.from({ length: 10 }).map((_, i) => (
-          <div
-            key={i}
-            className="absolute w-1 h-1 bg-orange-400/30 rounded-full animate-bounce"
-            style={{
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
-              animationDelay: `${Math.random() * 3}s`,
-              animationDuration: `${2 + Math.random() * 3}s`
-            }}
-          />
-        ))}
+        {Array.from({ length: 10 }).map((_, i) => {
+          const leftPos = Math.random() * 100;
+          const topPos = Math.random() * 100;
+          const delay = Math.random() * 3;
+          const duration = 2 + Math.random() * 3;
+          
+          return (
+            <div
+              key={i}
+              className="absolute w-1 h-1 bg-orange-400/30 rounded-full animate-bounce"
+              style={{
+                left: leftPos + '%',
+                top: topPos + '%',
+                animationDelay: delay + 's',
+                animationDuration: duration + 's'
+              }}
+            />
+          );
+        })}
       </div>
       
       <nav className="bg-slate-800/90 border-b border-orange-500/20 shadow-sm backdrop-blur-sm relative z-10 animate-fade-in">

@@ -32,6 +32,68 @@ def get_martian_client():
         raise HTTPException(status_code=500, detail="Martian API key not configured")
     return MartianClient(api_key)
 
+def generate_financial_insights(cleaned_data, financial_data):
+    try:
+        with open("ai2.prompt", "r") as f:
+            insights_prompt = f.read()
+        
+        analysis_data = f"""
+CLEANED FINANCIAL DATA:
+Card Limit: {cleaned_data.get("card_limit", "")}
+Card Age: {cleaned_data.get("card_age", "")} months
+Purchases: {cleaned_data.get("purchases", [])}
+Debt History: {cleaned_data.get("debt_history", [])}
+
+RAW FINANCIAL DATA:
+Credit Card Limit: {financial_data.credit_card_limit}
+Card Age: {financial_data.card_age}
+Credit Forms: {financial_data.credit_forms}
+Current Debt: {financial_data.current_debt}
+Debt Amount: {financial_data.debt_amount}
+Debt End Date: {financial_data.debt_end_date}
+Debt Duration: {financial_data.debt_duration}
+"""
+        
+        martian_client = get_martian_client()
+        
+        messages = [
+            {"role": "system", "content": insights_prompt},
+            {"role": "user", "content": f"Analyze this financial data: {analysis_data}"}
+        ]
+        
+        response = martian_client.chat_completions(
+            model="openai/gpt-4.1-nano:cheap",
+            messages=messages,
+            temperature=0.1
+        )
+        
+        insights_analysis = response.get("choices", [{}])[0].get("message", {}).get("content", "")
+        
+        import json
+        insights_json = json.loads(insights_analysis)
+        
+        return {
+            "financial_metrics": json.dumps(insights_json.get("financial_metrics", {})),
+            "insights": json.dumps(insights_json.get("insights", [])),
+            "recommendations": json.dumps(insights_json.get("recommendations", [])),
+            "risk_assessment": json.dumps(insights_json.get("risk_assessment", {})),
+            "trends": json.dumps(insights_json.get("trends", {})),
+            "ai_insights_text": insights_json.get("ai_insights_text", ""),
+            "full_analysis": insights_analysis
+        }
+        
+    except Exception as e:
+        print(f"Error generating insights: {e}")
+        return {
+            "financial_metrics": "{}",
+            "insights": "[]",
+            "recommendations": "[]",
+            "risk_assessment": "{}",
+            "trends": "{}",
+            "ai_insights_text": f"Error generating insights: {str(e)}",
+            "full_analysis": f"Error: {str(e)}"
+        }
+
 @app.get("/")
 def root():
     return {"message": "Welcome to RythmHacks API"}
@@ -198,6 +260,7 @@ PDF Statement Text: {pdf_text}
             existing_data.is_data_cleaned = True
             db.commit()
             db.refresh(existing_data)
+            financial_data = existing_data
         else:
             financial_data.cleaned_card_limit = cleaned_card_limit
             financial_data.cleaned_card_age = cleaned_card_age
@@ -208,6 +271,7 @@ PDF Statement Text: {pdf_text}
             db.commit()
             db.refresh(financial_data)
         
+<<<<<<< Updated upstream
         return {
             "msg": "✓ Financial information saved and analyzed successfully!"
         }
@@ -216,6 +280,55 @@ PDF Statement Text: {pdf_text}
         return {
             "msg": "✓ Financial information saved successfully! (AI analysis failed)"
         }
+=======
+        # Generate AI Insights
+        try:
+            insights_data = generate_financial_insights(cleaned_data, financial_data)
+            
+            if existing_data:
+                existing_data.financial_metrics = insights_data.get("financial_metrics", "")
+                existing_data.insights = insights_data.get("insights", "")
+                existing_data.recommendations = insights_data.get("recommendations", "")
+                existing_data.risk_assessment = insights_data.get("risk_assessment", "")
+                existing_data.trends = insights_data.get("trends", "")
+                existing_data.ai_insights_text = insights_data.get("ai_insights_text", "")
+                existing_data.ai_insights_result = insights_data.get("full_analysis", "")
+                existing_data.is_insights_generated = True
+                db.commit()
+                db.refresh(existing_data)
+            else:
+                financial_data.financial_metrics = insights_data.get("financial_metrics", "")
+                financial_data.insights = insights_data.get("insights", "")
+                financial_data.recommendations = insights_data.get("recommendations", "")
+                financial_data.risk_assessment = insights_data.get("risk_assessment", "")
+                financial_data.trends = insights_data.get("trends", "")
+                financial_data.ai_insights_text = insights_data.get("ai_insights_text", "")
+                financial_data.ai_insights_result = insights_data.get("full_analysis", "")
+                financial_data.is_insights_generated = True
+                db.commit()
+                db.refresh(financial_data)
+        except Exception as insights_error:
+            print(f"Insights generation failed: {insights_error}")
+        
+            return {
+                "msg": "Financial information saved and analyzed successfully", 
+                "data_id": financial_data.id,
+                "ai_analysis": ai_analysis,
+                "cleaned_data": {
+                    "card_limit": cleaned_card_limit,
+                    "card_age": cleaned_card_age,
+                    "transaction_list": cleaned_transaction_list,
+                    "debt_history": cleaned_debt_history
+                }
+            }
+        
+    except Exception as e:
+            return {
+                "msg": "Financial information saved successfully (AI analysis failed)", 
+                "data_id": financial_data.id,
+                "error": str(e)
+            }
+>>>>>>> Stashed changes
 
 @app.get("/get-financial-data")
 def get_financial_data(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
@@ -249,6 +362,16 @@ def get_financial_data(token: str = Depends(oauth2_scheme), db: Session = Depend
             "cleaned_debt_history": financial_data.cleaned_debt_history,
             "ai_analysis_result": financial_data.ai_analysis_result,
             "is_data_cleaned": financial_data.is_data_cleaned
+        },
+        "insights": {
+            "financial_metrics": financial_data.financial_metrics,
+            "insights": financial_data.insights,
+            "recommendations": financial_data.recommendations,
+            "risk_assessment": financial_data.risk_assessment,
+            "trends": financial_data.trends,
+            "ai_insights_text": financial_data.ai_insights_text,
+            "ai_insights_result": financial_data.ai_insights_result,
+            "is_insights_generated": financial_data.is_insights_generated
         }
     }
 

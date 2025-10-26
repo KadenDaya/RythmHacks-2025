@@ -69,18 +69,25 @@ export default function Signup() {
       </div>
       
       <div className="absolute inset-0 overflow-hidden">
-        {Array.from({ length: 15 }).map((_, i) => (
-          <div
-            key={i}
-            className="absolute w-1 h-1 bg-orange-400/30 rounded-full animate-bounce"
-            style={{
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
-              animationDelay: `${Math.random() * 3}s`,
-              animationDuration: `${2 + Math.random() * 3}s`
-            }}
-          />
-        ))}
+        {Array.from({ length: 15 }).map((_, i) => {
+          const leftPos = Math.random() * 100;
+          const topPos = Math.random() * 100;
+          const delay = Math.random() * 3;
+          const duration = 2 + Math.random() * 3;
+          
+          return (
+            <div
+              key={i}
+              className="absolute w-1 h-1 bg-orange-400/30 rounded-full animate-bounce"
+              style={{
+                left: leftPos + '%',
+                top: topPos + '%',
+                animationDelay: delay + 's',
+                animationDuration: duration + 's'
+              }}
+            />
+          );
+        })}
       </div>
       
       <div className="bg-gradient-to-br from-slate-800/90 to-slate-900/90 p-8 rounded-xl shadow-2xl w-96 border border-orange-500/20 backdrop-blur-sm relative z-10 animate-slide-up">
