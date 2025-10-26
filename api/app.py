@@ -11,6 +11,7 @@ load_dotenv()
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from martianAPIWrapper import MartianClient
 from pdfToText import extract_pdf_text
+from dataInput import transactionData, date, cardData
 
 models.Base.metadata.create_all(bind=database.engine)
 app = FastAPI()
@@ -159,6 +160,32 @@ PDF Statement Text: {pdf_text}
             cleaned_card_age = cleaned_data.get("card_age", "")
             cleaned_transaction_list = json.dumps(cleaned_data.get("purchases", []))
             cleaned_debt_history = json.dumps(cleaned_data.get("debt_history", []))
+            
+            transaction_objects = []
+            for purchase in cleaned_data.get("purchases", []):
+                transaction_obj = transactionData(
+                    purchaseYear=purchase.get("purchase_year", 0),
+                    purchaseMonth=purchase.get("purchase_month", 0),
+                    purchaseDay=purchase.get("purchase_day", 0),
+                    paymentYear=purchase.get("payment_year", -1),
+                    paymentMonth=purchase.get("payment_month", -1),
+                    paymentDay=purchase.get("payment_day", -1),
+                    cost=float(purchase.get("cost", "0.00"))
+                )
+                transaction_objects.append(transaction_obj)
+            
+            card_limit_float = float(cleaned_card_limit) if cleaned_card_limit else 0.0
+            card_age_int = int(cleaned_card_age) if cleaned_card_age else 0
+            
+            user_card_data = cardData(
+                count=len(transaction_objects),
+                cardLimit=card_limit_float,
+                transactionList=transaction_objects,
+                ageOfCard=card_age_int
+            )
+            
+            user_card_data.organizeDataSet(user_card_data.transactionList)
+            user_card_data.percentageOfCardUsedAVG(user_card_data.transactionList, user_card_data.cardLimit)
         except:
             pass
         
@@ -182,22 +209,12 @@ PDF Statement Text: {pdf_text}
             db.refresh(financial_data)
         
         return {
-            "msg": "✓ Financial information saved and analyzed successfully!", 
-            "data_id": financial_data.id,
-            "ai_analysis": ai_analysis,
-            "cleaned_data": {
-                "card_limit": cleaned_card_limit,
-                "card_age": cleaned_card_age,
-                "transaction_list": cleaned_transaction_list,
-                "debt_history": cleaned_debt_history
-            }
+            "msg": "✓ Financial information saved and analyzed successfully!"
         }
         
     except Exception as e:
         return {
-            "msg": "✓ Financial information saved successfully! (AI analysis failed)", 
-            "data_id": financial_data.id,
-            "error": str(e)
+            "msg": "✓ Financial information saved successfully! (AI analysis failed)"
         }
 
 @app.get("/get-financial-data")
