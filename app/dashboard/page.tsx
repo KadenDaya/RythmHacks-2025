@@ -1,6 +1,24 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { 
+  PieChart, 
+  Pie, 
+  Cell, 
+  BarChart, 
+  Bar, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  AreaChart,
+  Area,
+  RadialBarChart,
+  RadialBar
+} from 'recharts'
 
 interface FinancialData {
   raw_data: {
@@ -65,6 +83,18 @@ export default function Dashboard() {
       }
 
       const data = await response.json()
+      
+      // Console log everything for debugging
+      console.log('=== API RESPONSE DEBUG ===')
+      console.log('Full API Response:', data)
+      console.log('Raw Data:', data.raw_data)
+      console.log('Cleaned Data:', data.cleaned_data)
+      console.log('Insights:', data.insights)
+      console.log('Financial Metrics:', data.insights?.financial_metrics)
+      console.log('Custom Credit Score:', data.insights?.custom_credit_score)
+      console.log('Credit Improvement Plan:', data.insights?.credit_improvement_plan)
+      console.log('========================')
+      
       setFinancialData(data)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error')
@@ -143,6 +173,53 @@ export default function Dashboard() {
   const customCreditScore = parseJsonSafely(financialData?.insights?.custom_credit_score || '{}')
   const creditPlan = parseJsonSafely(financialData?.insights?.credit_improvement_plan || '{}')
 
+  // Chart data preparation
+  const chartColors = ['#f97316', '#ef4444', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6']
+  
+  // Credit utilization pie chart data
+  const utilizationData = [
+    { name: 'Used', value: (customCreditScore.utilization_ratio || 0) * 100, color: '#ef4444' },
+    { name: 'Available', value: 100 - ((customCreditScore.utilization_ratio || 0) * 100), color: '#10b981' }
+  ]
+
+  // Financial metrics bar chart data
+  const metricsData = [
+    { name: 'Credit Utilization', value: (customCreditScore.utilization_ratio || 0) * 100 },
+    { name: 'Financial Health', value: metrics.financial_health_score || 0 },
+    { name: 'Payment Behavior', value: metrics.payment_behavior_score || 0 },
+    { name: 'Risk Score', value: riskAssessment.risk_score || 0 }
+  ]
+
+  // Transaction analysis data
+  const transactionData = [
+    { name: 'Paid', value: metrics.paid_transactions || 0, color: '#10b981' },
+    { name: 'Unpaid', value: metrics.unpaid_transactions || 0, color: '#ef4444' },
+    { name: 'Total', value: metrics.total_transactions || 0, color: '#3b82f6' }
+  ]
+
+  // Algorithm results data
+  const algorithmData = customCreditScore.algorithm_results ? [
+    { name: 'Anomalies', value: customCreditScore.algorithm_results.anomalies?.length || 0 },
+    { name: 'Sorted Transactions', value: customCreditScore.algorithm_results.sorting_stats?.quicksort_by_amount || 0 },
+    { name: 'Unpaid Found', value: customCreditScore.algorithm_results.search_results?.unpaid_count || 0 },
+    { name: 'Clusters', value: customCreditScore.algorithm_results.graph_analysis?.cluster_count || 0 }
+  ] : []
+
+  // Custom tooltip component
+  const CustomTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="bg-slate-800/95 backdrop-blur-sm border border-orange-500/30 rounded-lg p-3 shadow-xl">
+          <p className="text-orange-300 font-semibold">{label}</p>
+          <p className="text-orange-200">
+            {payload[0].name}: <span className="text-orange-400 font-bold">{payload[0].value}</span>
+          </p>
+        </div>
+      )
+    }
+    return null
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-orange-900 to-red-900 p-6 relative overflow-hidden">
       <div className="absolute inset-0 opacity-10">
@@ -155,20 +232,36 @@ export default function Dashboard() {
       
       <div className="absolute inset-0 overflow-hidden">
         {Array.from({ length: 15 }).map((_, i) => {
-          const leftPos = Math.random() * 100;
-          const topPos = Math.random() * 100;
-          const delay = Math.random() * 3;
-          const duration = 2 + Math.random() * 3;
+          // Use fixed positions to avoid hydration mismatch
+          const positions = [
+            { left: 15, top: 20, delay: 0.5, duration: 2.5 },
+            { left: 85, top: 30, delay: 1.2, duration: 3.1 },
+            { left: 45, top: 60, delay: 0.8, duration: 2.8 },
+            { left: 75, top: 15, delay: 1.5, duration: 3.5 },
+            { left: 25, top: 80, delay: 0.3, duration: 2.2 },
+            { left: 65, top: 45, delay: 1.8, duration: 3.2 },
+            { left: 35, top: 70, delay: 0.7, duration: 2.9 },
+            { left: 90, top: 55, delay: 1.1, duration: 3.8 },
+            { left: 55, top: 25, delay: 1.4, duration: 2.6 },
+            { left: 40, top: 85, delay: 0.9, duration: 3.4 },
+            { left: 20, top: 40, delay: 1.6, duration: 2.7 },
+            { left: 70, top: 75, delay: 0.4, duration: 3.6 },
+            { left: 50, top: 10, delay: 1.3, duration: 2.4 },
+            { left: 30, top: 50, delay: 0.6, duration: 3.3 },
+            { left: 80, top: 90, delay: 1.7, duration: 2.1 }
+          ];
+          
+          const pos = positions[i] || positions[0];
           
           return (
             <div
               key={i}
               className="absolute w-1 h-1 bg-orange-400/30 rounded-full animate-bounce"
               style={{
-                left: leftPos + '%',
-                top: topPos + '%',
-                animationDelay: delay + 's',
-                animationDuration: duration + 's'
+                left: pos.left + '%',
+                top: pos.top + '%',
+                animationDelay: pos.delay + 's',
+                animationDuration: pos.duration + 's'
               }}
             />
           );
@@ -232,26 +325,44 @@ export default function Dashboard() {
               <h3 className="text-xl font-bold text-orange-300 mb-4">
                 Financial Metrics
               </h3>
-              {metrics && (
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center p-3 bg-slate-700/50 rounded-lg">
-                    <span className="text-orange-200">Credit Utilization</span>
-                    <span className="text-orange-400 font-bold">{metrics.credit_utilization_percentage || 0}%</span>
-                  </div>
-                  <div className="flex justify-between items-center p-3 bg-slate-700/50 rounded-lg">
-                    <span className="text-orange-200">Financial Health Score</span>
-                    <span className="text-orange-400 font-bold">{metrics.financial_health_score || 0}/100</span>
-                  </div>
-                  <div className="flex justify-between items-center p-3 bg-slate-700/50 rounded-lg">
-                    <span className="text-orange-200">Payment Behavior Score</span>
-                    <span className="text-orange-400 font-bold">{metrics.payment_behavior_score || 0}/100</span>
-                  </div>
-                  <div className="flex justify-between items-center p-3 bg-slate-700/50 rounded-lg">
-                    <span className="text-orange-200">Total Spending</span>
-                    <span className="text-orange-400 font-bold">${metrics.total_spending || 0}</span>
-                  </div>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Credit Utilization Pie Chart */}
+                <div className="h-64">
+                  <h4 className="text-lg font-semibold text-orange-400 mb-3 text-center">Credit Utilization</h4>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={utilizationData}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={40}
+                        outerRadius={80}
+                        paddingAngle={5}
+                        dataKey="value"
+                      >
+                        {utilizationData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip content={<CustomTooltip />} />
+                    </PieChart>
+                  </ResponsiveContainer>
                 </div>
-              )}
+
+                {/* Financial Metrics Bar Chart */}
+                <div className="h-64">
+                  <h4 className="text-lg font-semibold text-orange-400 mb-3 text-center">Key Metrics</h4>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={metricsData}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                      <XAxis dataKey="name" tick={{ fill: '#f97316', fontSize: 12 }} />
+                      <YAxis tick={{ fill: '#f97316', fontSize: 12 }} />
+                      <Tooltip content={<CustomTooltip />} />
+                      <Bar dataKey="value" fill="#f97316" radius={[4, 4, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
             </div>
 
             <div className="bg-slate-800/90 backdrop-blur-sm rounded-2xl p-6 shadow-xl border border-orange-500/20">
@@ -288,6 +399,50 @@ export default function Dashboard() {
           </div>
 
           <div className="space-y-6">
+            <div className="bg-slate-800/90 backdrop-blur-sm rounded-2xl p-6 shadow-xl border border-orange-500/20">
+              <h3 className="text-xl font-bold text-orange-300 mb-4">
+                Transaction Analysis
+              </h3>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Transaction Status Pie Chart */}
+                <div className="h-64">
+                  <h4 className="text-lg font-semibold text-orange-400 mb-3 text-center">Transaction Status</h4>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={transactionData}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={40}
+                        outerRadius={80}
+                        paddingAngle={5}
+                        dataKey="value"
+                      >
+                        {transactionData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip content={<CustomTooltip />} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+
+                {/* Algorithm Results Bar Chart */}
+                <div className="h-64">
+                  <h4 className="text-lg font-semibold text-orange-400 mb-3 text-center">Algorithm Analysis</h4>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={algorithmData}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                      <XAxis dataKey="name" tick={{ fill: '#f97316', fontSize: 10 }} />
+                      <YAxis tick={{ fill: '#f97316', fontSize: 12 }} />
+                      <Tooltip content={<CustomTooltip />} />
+                      <Bar dataKey="value" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            </div>
+
             <div className="bg-slate-800/90 backdrop-blur-sm rounded-2xl p-6 shadow-xl border border-orange-500/20">
               <h3 className="text-xl font-bold text-orange-300 mb-4">
                 Trends Analysis
@@ -430,6 +585,25 @@ export default function Dashboard() {
                 </div>
               </div>
             )}
+
+            {/* Credit Score Radial Chart */}
+            <div className="bg-slate-800/90 backdrop-blur-sm rounded-2xl p-6 shadow-xl border border-orange-500/20">
+              <h3 className="text-xl font-bold text-orange-300 mb-4 text-center">Credit Health Overview</h3>
+              <div className="flex justify-center">
+                <div className="w-80 h-80">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <RadialBarChart cx="50%" cy="50%" innerRadius="20%" outerRadius="90%" data={[
+                      { name: 'Credit Score', value: (customCreditScore.score_code || 0) * 16.67, fill: '#f97316' },
+                      { name: 'Utilization', value: (customCreditScore.utilization_ratio || 0) * 100, fill: '#ef4444' },
+                      { name: 'Card Age', value: Math.min((customCreditScore.card_age_months || 0) * 2, 100), fill: '#10b981' }
+                    ]}>
+                      <RadialBar dataKey="value" cornerRadius={10} fill="#f97316" />
+                      <Tooltip content={<CustomTooltip />} />
+                    </RadialBarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            </div>
 
             {/* Credit Improvement Plan */}
             {creditPlan && Object.keys(creditPlan).length > 0 && (

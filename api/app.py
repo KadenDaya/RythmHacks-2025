@@ -13,6 +13,7 @@ from martianAPIWrapper import MartianClient
 from pdfToText import extract_pdf_text
 from dataInput import transactionData, date, cardData
 from criteria import critera
+from datetime import datetime
 
 models.Base.metadata.create_all(bind=database.engine)
 app = FastAPI()
@@ -371,7 +372,7 @@ def generate_financial_insights(cleaned_data, financial_data):
         # Sliding window for trend detection
         def sliding_window_trend(transactions, window_size=5):
             if len(transactions) < window_size:
-                return {"trend": "insufficient_data"}
+                return {"trend": "insufficient_data", "avg_slope": 0, "window_size": window_size}
             
             trends = []
             for i in range(len(transactions) - window_size + 1):
@@ -396,7 +397,11 @@ def generate_financial_insights(cleaned_data, financial_data):
         
         transaction_hash = build_transaction_hash_table(transaction_objects)
         
-        sliding_trend = sliding_window_trend(sorted_by_date)
+        try:
+            sliding_trend = sliding_window_trend(sorted_by_date)
+        except Exception as e:
+            print(f"Error in sliding_window_trend: {e}")
+            sliding_trend = {"trend": "error", "avg_slope": 0, "window_size": 5}
         
         # Heap algorithms for priority-based debt management
         import heapq
@@ -519,46 +524,166 @@ def generate_financial_insights(cleaned_data, financial_data):
             6: "Excellent: Low utilization + Established card - Perfect credit health"
         }
         
+        # Calculate comprehensive financial metrics
+        total_spending = sum(t.cost for t in transaction_objects)
+        avg_transaction_size = total_spending / len(transaction_objects) if transaction_objects else 0
+        paid_transactions = len([t for t in transaction_objects if t.paymentDate.year != -1])
+        unpaid_transactions = len(transaction_objects) - paid_transactions
+        payment_completion_rate = (paid_transactions / len(transaction_objects)) * 100 if transaction_objects else 0
+        
+        # Calculate spending patterns
+        transaction_amounts = [t.cost for t in transaction_objects]
+        if transaction_amounts:
+            spending_volatility = (max(transaction_amounts) - min(transaction_amounts)) / avg_transaction_size if avg_transaction_size > 0 else 0
+            largest_transaction = max(transaction_amounts)
+            smallest_transaction = min(transaction_amounts)
+        else:
+            spending_volatility = 0
+            largest_transaction = 0
+            smallest_transaction = 0
+        
+        # Calculate payment patterns
+        payment_delays = []
+        for t in transaction_objects:
+            if t.paymentDate.year != -1:
+                purchase_date = datetime(t.purchaseDate.year, t.purchaseDate.month, t.purchaseDate.day)
+                payment_date = datetime(t.paymentDate.year, t.paymentDate.month, t.paymentDate.day)
+                delay = (payment_date - purchase_date).days
+                payment_delays.append(delay)
+        
+        avg_days_to_pay = sum(payment_delays) / len(payment_delays) if payment_delays else 0
+        
+        # Calculate financial health indicators
+        financial_health_score = min(100, max(0, 
+            (payment_completion_rate * 0.4) + 
+            ((100 - utilization_ratio * 100) * 0.3) + 
+            (min(100, card_age_int * 2) * 0.2) + 
+            (min(100, 100 - spending_volatility) * 0.1)
+        ))
+        
+        payment_behavior_score = min(100, max(0, 
+            (payment_completion_rate * 0.6) + 
+            (max(0, 100 - avg_days_to_pay) * 0.4)
+        ))
+        
+        spending_consistency_score = min(100, max(0, 100 - spending_volatility))
+        credit_velocity = total_spending / card_age_int if card_age_int > 0 else 0
+        payment_reliability_index = payment_completion_rate / 100
+        financial_stability_marker = (financial_health_score + payment_behavior_score + spending_consistency_score) / 3
+        credit_building_potential = min(100, max(0, 
+            (card_age_int * 3) + 
+            (payment_completion_rate * 0.5) + 
+            ((100 - utilization_ratio * 100) * 0.3)
+        ))
+        
+        # Determine patterns
+        monthly_spending_pattern = "consistent" if spending_volatility < 50 else "volatile" if spending_volatility > 100 else "moderate"
+        transaction_frequency = "high" if len(transaction_objects) > card_age_int else "moderate" if len(transaction_objects) > card_age_int * 0.5 else "low"
+        seasonal_spending_trend = "stable" if spending_volatility < 30 else "seasonal" if spending_volatility < 80 else "irregular"
+        
         with open("ai2.prompt", "r") as f:
             insights_prompt = f.read()
         
         analysis_data = f"""
-CLEANED FINANCIAL DATA:
-Card Limit: {cleaned_data.get("card_limit", "")}
-Card Age: {cleaned_data.get("card_age", "")} months
-Purchases: {cleaned_data.get("purchases", [])}
-Debt History: {cleaned_data.get("debt_history", [])}
+COMPREHENSIVE FINANCIAL ANALYSIS DATA:
 
-ALGORITHM ANALYSIS:
-Anomalies Detected: {len(anomalies)} transactions with z-score > 2.5
-Sorting Results: {len(sorted_by_amount)} transactions sorted by amount, {len(sorted_by_date)} by date
-Search Results: {len(unpaid_indices)} unpaid transactions found, median amount: {median_amount}
-Greedy Debt Plan: {len(debt_payoff_plan)} optimized payments
-Recursive Trend: {trend_analysis['trend']} pattern detected at depth {trend_analysis['depth']}
-Dynamic Programming: {len(optimal_schedule)} optimal payment schedule items
-Graph Analysis: {len(spending_clusters)} spending clusters found
-Hash Table: {len(transaction_hash)} date-based transaction groups
-Sliding Window: {sliding_trend['trend']} trend with slope {sliding_trend.get('avg_slope', 0):.3f}
-Heap Priority: {len(top_priorities)} top priority debts identified
-Backtracking: {len(optimal_budget) if optimal_budget else 0} optimal budget allocations
-Divide Conquer: {dataset_analysis['count']} transactions processed
-Two Pointers: {len(transaction_matches)} transaction pairs found
+BASIC METRICS:
+Card Limit: ${card_limit_float:,.2f}
+Card Age: {card_age_int} months
+Total Transactions: {len(transaction_objects)}
+Total Spending: ${total_spending:,.2f}
+Average Transaction Size: ${avg_transaction_size:,.2f}
+Largest Transaction: ${largest_transaction:,.2f}
+Smallest Transaction: ${smallest_transaction:,.2f}
+Transaction Range: ${largest_transaction - smallest_transaction:,.2f}
 
-CUSTOM CREDIT ANALYSIS:
+PAYMENT ANALYSIS:
+Paid Transactions: {paid_transactions}
+Unpaid Transactions: {unpaid_transactions}
+Payment Completion Rate: {payment_completion_rate:.1f}%
+Average Days to Pay: {avg_days_to_pay:.1f} days
+Payment Behavior Score: {payment_behavior_score:.1f}/100
+Payment Reliability Index: {payment_reliability_index:.3f}
+
+CREDIT ANALYSIS:
 Credit Utilization: {utilization_ratio:.2%}
 Credit Score Code: {credit_score_code}
 Credit Health Status: {credit_score_descriptions.get(credit_score_code, "Unknown")}
-Total Transactions: {len(transaction_objects)}
-Card Age: {card_age_int} months
+Credit Velocity: ${credit_velocity:.2f}/month
+Credit Building Potential: {credit_building_potential:.1f}/100
+
+SPENDING PATTERNS:
+Spending Volatility: {spending_volatility:.1f}%
+Monthly Spending Pattern: {monthly_spending_pattern}
+Transaction Frequency: {transaction_frequency}
+Seasonal Spending Trend: {seasonal_spending_trend}
+Spending Consistency Score: {spending_consistency_score:.1f}/100
+
+FINANCIAL HEALTH:
+Financial Health Score: {financial_health_score:.1f}/100
+Financial Stability Marker: {financial_stability_marker:.1f}/100
+Debt to Credit Ratio: {utilization_ratio:.2%}
+
+ALGORITHM ANALYSIS RESULTS:
+Anomaly Detection: {len(anomalies)} anomalies found
+- Anomaly Details: {[{'amount': a['amount'], 'z_score': a['z_score'], 'date': a['date']} for a in anomalies[:3]]}
+
+Sorting Analysis: {len(sorted_by_amount)} transactions sorted by amount, {len(sorted_by_date)} by date
+- Amount Range: ${f"{smallest_transaction:.2f} to {largest_transaction:.2f}" if transaction_amounts else "No transactions"}
+
+Search Results: {len(unpaid_indices)} unpaid transactions, median amount: ${median_amount:.2f}
+- Binary Search Performance: Median found at index {median_index}
+
+Greedy Debt Plan: {len(debt_payoff_plan)} optimized payments
+- Plan Details: {debt_payoff_plan[:3] if debt_payoff_plan else 'No debt to optimize'}
+
+Recursive Trend Analysis: {trend_analysis['trend']} pattern at depth {trend_analysis['depth']}
+- Consistency Level: {trend_analysis.get('consistency', 'unknown')}
+
+Dynamic Programming: {len(optimal_schedule)} optimal payment schedule items
+- Monthly Budget: ${monthly_budget:.2f}
+- Schedule Details: {optimal_schedule[:3] if optimal_schedule else 'No schedule needed'}
+
+Graph Analysis: {len(spending_clusters)} spending clusters found
+- Cluster Sizes: {[len(cluster) for cluster in spending_clusters[:3]]}
+- Largest Cluster: {max([len(cluster) for cluster in spending_clusters], default=0)} transactions
+
+Hash Table Analysis: {len(transaction_hash)} date-based groups
+- Total Entries: {sum(len(v) for v in transaction_hash.values())}
+- Most Active Days: {sorted(transaction_hash.items(), key=lambda x: len(x[1]), reverse=True)[:3]}
+
+Sliding Window Trend: {sliding_trend.get('trend', 'unknown')} trend
+- Average Slope: {sliding_trend.get('avg_slope', 0):.4f}
+- Window Size: {sliding_trend.get('window_size', 5)}
+
+Heap Priority Analysis: {len(top_priorities)} top priority debts
+- Priority Details: {[{'priority': p['priority'], 'amount': p['debt'].cost} for p in top_priorities[:3]]}
+
+Backtracking Budget: {len(optimal_budget)} optimal allocations
+- Budget Score: {budget_score:.2f}
+- Allocation Details: {optimal_budget}
+
+Divide & Conquer Analysis: {dataset_analysis['count']} transactions processed
+- Total Amount: ${dataset_analysis['total_amount']:.2f}
+- Average Amount: ${dataset_analysis['avg_amount']:.2f}
+- Left Subset: {dataset_analysis.get('left', {}).get('count', 0)} transactions
+- Right Subset: {dataset_analysis.get('right', {}).get('count', 0)} transactions
+
+Two Pointers Matching: {len(transaction_matches)} transaction pairs found
+- Target Sum: ${target_sum:.2f}
+- Match Details: {transaction_matches[:3] if transaction_matches else 'No matches found'}
 
 RAW FINANCIAL DATA:
-Credit Card Limit: {financial_data.credit_card_limit}
-Card Age: {financial_data.card_age}
+Credit Card Limit: ${financial_data.credit_card_limit}
+Card Age: {financial_data.card_age} months
 Credit Forms: {financial_data.credit_forms}
 Current Debt: {financial_data.current_debt}
-Debt Amount: {financial_data.debt_amount}
+Debt Amount: ${financial_data.debt_amount}
 Debt End Date: {financial_data.debt_end_date}
-Debt Duration: {financial_data.debt_duration}
+Debt Duration: {financial_data.debt_duration} months
+
+TRANSACTION DETAILS:
+Transaction List: {[{'date': f"{t.purchaseDate.year}-{t.purchaseDate.month}-{t.purchaseDate.day}", 'amount': t.cost, 'paid': t.paymentDate.year != -1} for t in transaction_objects[:10]]}
 """
         
         martian_client = get_martian_client()
@@ -576,8 +701,26 @@ Debt Duration: {financial_data.debt_duration}
         
         insights_analysis = response.get("choices", [{}])[0].get("message", {}).get("content", "")
         
+        # Debug: Log the response for troubleshooting
+        print(f"AI Response length: {len(insights_analysis)}")
+        print(f"AI Response preview: {insights_analysis[:200]}...")
+        
         import json
-        insights_json = json.loads(insights_analysis)
+        try:
+            insights_json = json.loads(insights_analysis)
+        except json.JSONDecodeError as e:
+            print(f"JSON parsing error: {e}")
+            print(f"Error position: {e.pos}")
+            print(f"Content around error: {insights_analysis[max(0, e.pos-100):e.pos+100]}")
+            # Return a fallback response
+            insights_json = {
+                "financial_metrics": {},
+                "insights": [],
+                "recommendations": [],
+                "risk_assessment": {},
+                "trends": {},
+                "ai_insights_text": "Error generating insights: Invalid JSON response from AI"
+            }
         
         # Add custom credit scoring data to the response
         insights_json["custom_credit_score"] = {
@@ -651,7 +794,9 @@ Debt Duration: {financial_data.debt_duration}
         }
         
     except Exception as e:
+        import traceback
         print(f"Error generating insights: {e}")
+        print(f"Traceback: {traceback.format_exc()}")
         return {
             "financial_metrics": "{}",
             "insights": "[]",

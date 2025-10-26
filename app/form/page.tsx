@@ -101,20 +101,31 @@ export default function Form() {
       
       <div className="absolute inset-0 overflow-hidden">
         {Array.from({ length: 10 }).map((_, i) => {
-          const leftPos = Math.random() * 100;
-          const topPos = Math.random() * 100;
-          const delay = Math.random() * 3;
-          const duration = 2 + Math.random() * 3;
+          // Use fixed positions to avoid hydration mismatch
+          const positions = [
+            { left: 15, top: 20, delay: 0.5, duration: 2.5 },
+            { left: 85, top: 30, delay: 1.2, duration: 3.1 },
+            { left: 45, top: 60, delay: 0.8, duration: 2.8 },
+            { left: 75, top: 15, delay: 1.5, duration: 3.5 },
+            { left: 25, top: 80, delay: 0.3, duration: 2.2 },
+            { left: 65, top: 45, delay: 1.8, duration: 3.2 },
+            { left: 35, top: 70, delay: 0.7, duration: 2.9 },
+            { left: 90, top: 55, delay: 1.1, duration: 3.8 },
+            { left: 55, top: 25, delay: 1.4, duration: 2.6 },
+            { left: 40, top: 85, delay: 0.9, duration: 3.4 }
+          ];
+          
+          const pos = positions[i] || positions[0];
           
           return (
             <div
               key={i}
               className="absolute w-1 h-1 bg-orange-400/30 rounded-full animate-bounce"
               style={{
-                left: leftPos + '%',
-                top: topPos + '%',
-                animationDelay: delay + 's',
-                animationDuration: duration + 's'
+                left: pos.left + '%',
+                top: pos.top + '%',
+                animationDelay: pos.delay + 's',
+                animationDuration: pos.duration + 's'
               }}
             />
           );
