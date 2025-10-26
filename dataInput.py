@@ -63,7 +63,7 @@ class cardData:
                             transactionList[i]=transactionList[i+1]
                             transactionList[i+1]=temp
                             changed=True
-    def percentageOfCardUsedAVG(self, transactionList, cardLimit):
+    def percentageOfCardUsed(self, transactionList, cardLimit):
         #find percentage of card being used, calculate in terms of monthly usage based on 10 most recent months
         unpaidDebts = 0.0
         for i in range(len(transactionList)):
